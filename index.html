@@ -118,19 +118,36 @@ tbody tr{cursor:pointer}tbody tr:hover{background:var(--accent-soft)}
   .fg{grid-template-columns:1fr}
 }
 @media (prefers-reduced-motion:no-preference){.card,.deal{transition:border-color .15s}}
+
+[hidden]{display:none!important}
+#auth{min-height:100vh;display:grid;place-items:center;padding:24px 0}
+.authbox{width:100%;max-width:400px;display:flex;flex-direction:column;gap:14px}
+.authbox form{display:flex;flex-direction:column;gap:12px}
+.authbox label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+.authbox input{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:14px;width:100%}
+.authbox .msg{font-size:13px;padding:10px 12px;border-radius:8px;background:var(--warn-soft);color:var(--warn)}
+.authbox .msg.ok{background:var(--good-soft);color:var(--good)}
+.link{background:none;border:0;color:var(--accent);cursor:pointer;padding:0;font-weight:500}
+.who{display:flex;flex-direction:column;gap:8px;font-size:12px;color:var(--muted)}
+.who span{overflow-wrap:anywhere}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:max(16px,env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:13px;z-index:40;max-width:90vw}
+#toast.bad{background:var(--bad);color:#fff}
 </style>
 
 </head>
 <body>
-<div class="app">
+<div id="auth"></div>
+<div class="app" id="app" hidden>
   <aside class="side">
     <div class="brand"><i><svg viewBox="0 0 16 16"><circle cx="4" cy="8" r="2"/><circle cx="12" cy="4" r="2"/><circle cx="12" cy="12" r="2"/><path d="M6 7l4-2M6 9l4 2"/></svg></i>Kamba CRM</div>
     <nav id="nav"></nav>
-    <p class="note">Protótipo com dados de exemplo. Os teus registos ficam guardados apenas neste navegador.</p>
+    <div class="who"><span id="who"></span><button class="btn" data-a="out">Sair</button></div>
   </aside>
   <main id="main"></main>
 </div>
 <div id="modal"></div>
+<div id="toast" role="status" hidden></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 
 <script>
 const STAGES=[{id:'novo',nome:'Novo',p:.1},{id:'qual',nome:'Qualificado',p:.3},{id:'prop',nome:'Proposta',p:.55},{id:'neg',nome:'Negociação',p:.8},{id:'ganho',nome:'Ganho',p:1},{id:'perdido',nome:'Perdido',p:0}];
@@ -138,7 +155,7 @@ const STATUS=['Lead','Cliente','Inativo'];
 const KEY='nexo-crm-v1';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const uid=()=>Math.random().toString(36).slice(2,9);
+const uid=()=>crypto.randomUUID();
 const pad=n=>String(n).padStart(2,'0');
 const iso=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
 const off=n=>{const d=new Date();d.setDate(d.getDate()+n);return iso(d)};
@@ -174,12 +191,53 @@ function seed(){
   ].map(([id,titulo,contacto,dias,feito])=>({id,titulo,contacto,data:off(dias),feito:!!feito}));
   return{contacts:c,deals:d,tasks:t};
 }
-let db;
-try{db=JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){db=null}
-if(!db||!db.contacts)db=seed();
-const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(db))}catch(e){}};
+const SB_URL='https://dywzfjrisvgkujamueql.supabase.co';
+const SB_KEY='sb_publishable_Ji27m-a-nNTJ2XQbdDkIgA_0scQq98v';
+const sb=supabase.createClient(SB_URL,SB_KEY);
+let db={contacts:[],deals:[],tasks:[],team:[]};
+let me={email:'',papel:''};
+const TBL={contacts:'contactos',deals:'negocios',tasks:'tarefas',team:'equipa'};
+const toRow={
+  contacts:o=>({id:o.id,nome:o.nome,empresa:o.empresa,cargo:o.cargo,email:o.email,tel:o.tel,cidade:o.cidade,estado:o.estado,notas:o.notas}),
+  deals:o=>({id:o.id,titulo:o.titulo,contacto_id:o.contacto||null,valor:o.valor,etapa:o.etapa,fecho:o.fecho||null,notas:o.notas||''}),
+  tasks:o=>({id:o.id,titulo:o.titulo,contacto_id:o.contacto||null,data:o.data,feito:!!o.feito}),
+  team:o=>({email:o.email,papel:o.papel})};
+const fromRow={
+  deals:r=>({id:r.id,titulo:r.titulo,contacto:r.contacto_id||'',valor:Number(r.valor),etapa:r.etapa,fecho:r.fecho||'',notas:r.notas||''}),
+  tasks:r=>({id:r.id,titulo:r.titulo,contacto:r.contacto_id||'',data:r.data,feito:r.feito})};
+let queue=[];
+const touch=(k,o)=>queue.push({op:'up',k,row:toRow[k](o)});
+const drop=(k,id)=>queue.push({op:'del',k,id});
+let toastT;
+function toast(msg,bad){const t=$('#toast');t.textContent=msg;t.className=bad?'bad':'';t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>{t.hidden=true},bad?6000:2500)}
+async function save(){
+  const q=queue;queue=[];
+  for(const j of q){
+    const r=j.op==='up'?await sb.from(TBL[j.k]).upsert(j.row):await sb.from(TBL[j.k]).delete().eq(j.k==='team'?'email':'id',j.id);
+    if(r.error){toast('Não foi possível guardar: '+r.error.message,true);await loadAll();render();return}
+  }
+}
+async function loadAll(){
+  const [c,d,t,e]=await Promise.all([
+    sb.from('contactos').select('*').order('criado_em',{ascending:false}),
+    sb.from('negocios').select('*').order('criado_em'),
+    sb.from('tarefas').select('*').order('criado_em'),
+    sb.from('equipa').select('*').order('criado_em')]);
+  const err=c.error||d.error||t.error||e.error;
+  if(err){toast('Erro ao carregar dados: '+err.message,true);return false}
+  db.contacts=c.data;db.deals=d.data.map(fromRow.deals);db.tasks=t.data.map(fromRow.tasks);db.team=e.data;return true;
+}
+async function loadSamples(){
+  const s=seed(),m={};
+  s.contacts.forEach(c=>{const n=uid();m[c.id]=n;c.id=n});
+  s.deals.forEach(d=>{d.id=uid();d.contacto=m[d.contacto]||''});
+  s.tasks.forEach(t=>{t.id=uid();t.contacto=m[t.contacto]||''});
+  db.contacts=s.contacts;db.deals=s.deals;db.tasks=s.tasks;
+  s.contacts.forEach(c=>touch('contacts',c));s.deals.forEach(d=>touch('deals',d));s.tasks.forEach(t=>touch('tasks',t));
+  render();await save();
+}
 const ui={view:'dashboard',q:'',st:'',tf:'pend'};
-const VIEWS=[['dashboard','Painel','M3 12l9-9 9 9M5 10v10h14V10'],['contactos','Contactos','M16 11a4 4 0 10-8 0 4 4 0 008 0zM4 21c0-4 4-6 8-6s8 2 8 6'],['pipeline','Pipeline','M3 4h5v16H3zM10 4h5v10h-5zM17 4h4v6h-4z'],['tarefas','Tarefas','M9 11l3 3 8-8M4 12v8h14v-5']];
+const VIEWS=[['dashboard','Painel','M3 12l9-9 9 9M5 10v10h14V10'],['contactos','Contactos','M16 11a4 4 0 10-8 0 4 4 0 008 0zM4 21c0-4 4-6 8-6s8 2 8 6'],['pipeline','Pipeline','M3 4h5v16H3zM10 4h5v10h-5zM17 4h4v6h-4z'],['tarefas','Tarefas','M9 11l3 3 8-8M4 12v8h14v-5'],['equipa','Equipa','M17 20v-1a4 4 0 00-4-4H7a4 4 0 00-4 4v1M10 11a4 4 0 100-8 4 4 0 000 8zM21 20v-1a4 4 0 00-3-3.9M16 3.1a4 4 0 010 7.8']];
 const cname=id=>(db.contacts.find(c=>c.id===id)||{}).nome||'';
 const ccomp=id=>(db.contacts.find(c=>c.id===id)||{}).empresa||'';
 const stage=id=>STAGES.find(s=>s.id===id);
@@ -193,13 +251,19 @@ function renderNav(){
 function render(){
   renderNav();
   const v=ui.view;
-  $('#main').innerHTML=v==='dashboard'?vDash():v==='contactos'?vContacts():v==='pipeline'?vPipe():vTasks();
+  $('#main').innerHTML=v==='dashboard'?vDash():v==='contactos'?vContacts():v==='pipeline'?vPipe():v==='equipa'?vTeam():vTasks();
   if(v==='contactos')listContacts();
 }
 function route(){const h=location.hash.slice(1);ui.view=VIEWS.some(v=>v[0]===h)?h:'dashboard';render()}
 addEventListener('hashchange',route);
 
+function vTeam(){
+  const adm=me.papel==='admin';
+  return`<div class="head"><div><h1>Equipa</h1><p>${adm?'Adiciona o email de quem pode entrar no CRM. A pessoa cria a conta com esse mesmo email.':'Pessoas com acesso ao CRM.'}</p></div>${adm?'<button class="btn pri" data-a="newm">Adicionar pessoa</button>':''}</div>
+  <div class="card"><div class="list">${db.team.map(m=>`<div class="it"><span class="av">${esc(ini(m.email.split('@')[0]))}</span><div class="grow"><div class="t">${esc(m.email)}</div></div><span class="chip ${m.papel==='admin'?'good':'mut'}">${m.papel==='admin'?'Administrador':'Membro'}</span>${adm&&m.email.toLowerCase()!==me.email.toLowerCase()?`<button class="btn bad" data-a="rmm" data-id="${esc(m.email)}">Remover</button>`:''}</div>`).join('')}</div></div>`;
+}
 function vDash(){
+  if(!db.contacts.length&&!db.deals.length&&!db.tasks.length)return`<div class="head"><div><h1>Painel</h1><p>O CRM ainda está vazio.</p></div></div><div class="card empty"><p>Cria o primeiro contacto ou carrega dados de exemplo para ver como funciona.</p><div class="acts" style="justify-content:center"><button class="btn pri" data-a="newc">Novo contacto</button><button class="btn" data-a="samples">Carregar exemplos</button></div></div>`;
   const open=db.deals.filter(isOpen);
   const fc=open.reduce((a,d)=>a+d.valor*stage(d.etapa).p,0);
   const won=db.deals.filter(d=>d.etapa==='ganho'),lost=db.deals.filter(d=>d.etapa==='perdido');
@@ -267,8 +331,8 @@ function editContact(id){
     inp('Nome','f_nome',c.nome,'text','w')+inp('Empresa','f_emp',c.empresa)+inp('Cargo','f_cargo',c.cargo)+inp('Email','f_email',c.email,'email')+inp('Telefone','f_tel',c.tel,'tel')+inp('Cidade','f_cid',c.cidade)+sel('Estado','f_est',opt(STATUS,c.estado))+`<label class="w">Notas<textarea id="f_not">${esc(c.notas)}</textarea></label>`+rel,
     g=>{if(reqName(g,'f_nome','Indica o nome')===false)return false;
       const o={nome:g('f_nome'),empresa:g('f_emp'),cargo:g('f_cargo'),email:g('f_email'),tel:g('f_tel'),cidade:g('f_cid'),estado:g('f_est'),notas:g('f_not')};
-      if(id)Object.assign(db.contacts.find(x=>x.id===id),o);else db.contacts.unshift({id:uid(),...o})},
-    id&&(()=>{db.contacts=db.contacts.filter(x=>x.id!==id);db.deals.forEach(d=>{if(d.contacto===id)d.contacto=''});db.tasks.forEach(t=>{if(t.contacto===id)t.contacto=''})}));
+      let obj;if(id){obj=Object.assign(db.contacts.find(x=>x.id===id),o)}else{obj={id:uid(),...o};db.contacts.unshift(obj)}touch('contacts',obj)},
+    id&&(()=>{drop('contacts',id);db.contacts=db.contacts.filter(x=>x.id!==id);db.deals.forEach(d=>{if(d.contacto===id)d.contacto=''});db.tasks.forEach(t=>{if(t.contacto===id)t.contacto=''})}));
 }
 function editDeal(id,stg){
   const d=db.deals.find(x=>x.id===id)||{etapa:stg||'novo',valor:'',fecho:off(30)};
@@ -276,8 +340,8 @@ function editDeal(id,stg){
     inp('Título','f_tit',d.titulo,'text','w')+inp('Valor (Kz)','f_val',d.valor,'number')+sel('Etapa','f_et',opt(STAGES,d.etapa,s=>[s.id,s.nome]))+sel('Contacto','f_con',cOpts(d.contacto))+inp('Fecho previsto','f_fe',d.fecho,'date')+`<label class="w">Notas<textarea id="f_not">${esc(d.notas)}</textarea></label>`,
     g=>{if(reqName(g,'f_tit','Indica o título')===false)return false;
       const o={titulo:g('f_tit'),valor:Math.max(0,+g('f_val')||0),etapa:g('f_et'),contacto:g('f_con'),fecho:g('f_fe'),notas:g('f_not')};
-      if(id)Object.assign(db.deals.find(x=>x.id===id),o);else db.deals.push({id:uid(),...o})},
-    id&&(()=>{db.deals=db.deals.filter(x=>x.id!==id)}));
+      let obj;if(id){obj=Object.assign(db.deals.find(x=>x.id===id),o)}else{obj={id:uid(),...o};db.deals.push(obj)}touch('deals',obj)},
+    id&&(()=>{drop('deals',id);db.deals=db.deals.filter(x=>x.id!==id)}));
 }
 function editTask(id){
   const t=db.tasks.find(x=>x.id===id)||{data:today()};
@@ -285,10 +349,16 @@ function editTask(id){
     inp('Tarefa','f_tit',t.titulo,'text','w')+sel('Contacto','f_con',cOpts(t.contacto))+inp('Data','f_dt',t.data,'date'),
     g=>{if(reqName(g,'f_tit','Indica a tarefa')===false)return false;
       const o={titulo:g('f_tit'),contacto:g('f_con'),data:g('f_dt')||today()};
-      if(id)Object.assign(db.tasks.find(x=>x.id===id),o);else db.tasks.push({id:uid(),...o,feito:false})},
-    id&&(()=>{db.tasks=db.tasks.filter(x=>x.id!==id)}));
+      let obj;if(id){obj=Object.assign(db.tasks.find(x=>x.id===id),o)}else{obj={id:uid(),...o,feito:false};db.tasks.push(obj)}touch('tasks',obj)},
+    id&&(()=>{drop('tasks',id);db.tasks=db.tasks.filter(x=>x.id!==id)}));
 }
 
+function editMember(){
+  modal('Adicionar pessoa',inp('Email','f_em','','email','w')+sel('Papel','f_pp','<option value="membro">Membro</option><option value="admin">Administrador</option>','w'),
+    g=>{const em=g('f_em').toLowerCase();if(!/^\S+@\S+\.\S+$/.test(em)){reqName(()=>'','f_em','Indica um email válido');return false}
+      if(db.team.some(m=>m.email.toLowerCase()===em)){toast('Esse email já tem acesso',true);return false}
+      const o={email:em,papel:g('f_pp')};db.team.push(o);touch('team',o)});
+}
 /* eventos */
 document.addEventListener('click',e=>{
   const el=e.target.closest('[data-a]');if(!el)return;
@@ -296,11 +366,15 @@ document.addEventListener('click',e=>{
   if(a==='close'){if(e.target===el||el.tagName==='BUTTON')closeM();return}
   if(a==='tick')return;
   if(a==='tf'){ui.tf=el.dataset.k;render();return}
+  if(a==='out'){sb.auth.signOut();return}
+  if(a==='samples'){loadSamples();return}
+  if(a==='rmm'){if(!el.dataset.s){el.dataset.s=1;el.textContent='Confirmar';return}db.team=db.team.filter(m=>m.email!==id);drop('team',id);save();render();return}
+  if(a==='newm'){editMember();return}
   ({newc:()=>editContact(),editc:()=>editContact(id),newd:()=>editDeal(),editd:()=>editDeal(id),newt:()=>editTask(),editt:()=>editTask(id)})[a]?.();
 });
 document.addEventListener('change',e=>{
   const el=e.target;
-  if(el.dataset.a==='tick'){const t=db.tasks.find(x=>x.id===el.dataset.id);t.feito=el.checked;save();render()}
+  if(el.dataset.a==='tick'){const t=db.tasks.find(x=>x.id===el.dataset.id);t.feito=el.checked;touch('tasks',t);save();render()}
   if(el.id==='st'){ui.st=el.value;listContacts()}
 });
 document.addEventListener('input',e=>{if(e.target.id==='q'){ui.q=e.target.value;listContacts()}});
@@ -309,10 +383,57 @@ let dragId=null;
 document.addEventListener('dragstart',e=>{const d=e.target.closest('.deal');if(d){dragId=d.dataset.id;e.dataTransfer.effectAllowed='move';try{e.dataTransfer.setData('text/plain',dragId)}catch(_){}}});
 document.addEventListener('dragover',e=>{const c=e.target.closest('.col');if(c&&dragId){e.preventDefault();document.querySelectorAll('.col.over').forEach(x=>x!==c&&x.classList.remove('over'));c.classList.add('over')}});
 document.addEventListener('dragleave',e=>{const c=e.target.closest('.col');if(c&&!c.contains(e.relatedTarget))c.classList.remove('over')});
-document.addEventListener('drop',e=>{const c=e.target.closest('.col');if(c&&dragId){e.preventDefault();const d=db.deals.find(x=>x.id===dragId);if(d){d.etapa=c.dataset.stage;save()}dragId=null;render()}});
+document.addEventListener('drop',e=>{const c=e.target.closest('.col');if(c&&dragId){e.preventDefault();const d=db.deals.find(x=>x.id===dragId);if(d){d.etapa=c.dataset.stage;touch('deals',d);save()}dragId=null;render()}});
 document.addEventListener('dragend',()=>{dragId=null;document.querySelectorAll('.col.over').forEach(x=>x.classList.remove('over'))});
 
-route();
+/* autenticação */
+function showAuth(mode='login',msg='',ok=false){
+  $('#app').hidden=true;$('#auth').hidden=false;
+  const su=mode==='signup';
+  $('#auth').innerHTML=`<div class="authbox card"><div class="brand"><i><svg viewBox="0 0 16 16"><circle cx="4" cy="8" r="2"/><circle cx="12" cy="4" r="2"/><circle cx="12" cy="12" r="2"/><path d="M6 7l4-2M6 9l4 2"/></svg></i>Kamba CRM</div>
+  <h1 style="font-size:22px">${su?'Criar conta':'Entrar'}</h1>${msg?`<div class="msg ${ok?'ok':''}">${esc(msg)}</div>`:''}
+  <form id="af" data-mode="${mode}" novalidate><label>Email<input id="a_em" type="email" autocomplete="email" required></label><label>Palavra-passe<input id="a_pw" type="password" autocomplete="${su?'new-password':'current-password'}" minlength="8" required></label><button class="btn pri" id="a_go">${su?'Criar conta':'Entrar'}</button></form>
+  <div class="m">${su?'Já tens conta?':'Ainda não tens conta?'} <button class="link" data-a="authmode" data-m="${su?'login':'signup'}">${su?'Entrar':'Criar conta'}</button></div></div>`;
+}
+function showNoAccess(){
+  $('#app').hidden=true;$('#auth').hidden=false;
+  $('#auth').innerHTML=`<div class="authbox card"><h1 style="font-size:22px">Sem acesso</h1><p class="m" style="font-size:14px">A conta ${esc(me.email)} ainda não foi autorizada. Pede ao administrador para adicionar este email na página Equipa e volta a entrar.</p><button class="btn" data-a="out">Sair</button></div>`;
+}
+async function enter(session){
+  me.email=session.user.email;
+  const{data,error}=await sb.rpc('reclamar_conta');
+  if(error){showAuth('login','Erro ao verificar o acesso: '+error.message);return}
+  if(data==='sem_acesso'||data==='sem_sessao'){showNoAccess();return}
+  me.papel=data;
+  if(!await loadAll())return;
+  $('#who').textContent=me.email+(me.papel==='admin'?' (administrador)':'');
+  $('#auth').hidden=true;$('#app').hidden=false;route();
+}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-a="authmode"]');if(b)showAuth(b.dataset.m)});
+document.addEventListener('submit',async e=>{
+  if(e.target.id!=='af')return;e.preventDefault();
+  const mode=e.target.dataset.mode,em=$('#a_em').value.trim(),pw=$('#a_pw').value;
+  if(!em||pw.length<8){showAuth(mode,'Indica o email e uma palavra-passe com pelo menos 8 caracteres.');return}
+  $('#a_go').disabled=true;
+  if(mode==='signup'){
+    const{data,error}=await sb.auth.signUp({email:em,password:pw,options:{emailRedirectTo:location.origin+location.pathname}});
+    if(error){showAuth('signup',error.message);return}
+    if(data.session){enter(data.session);return}
+    showAuth('login','Enviámos um email de confirmação para '+em+'. Abre o link e depois entra aqui.',true);
+  }else{
+    const{data,error}=await sb.auth.signInWithPassword({email:em,password:pw});
+    if(error){showAuth('login',/confirm/i.test(error.message)?'Confirma primeiro o teu email, pelo link que enviámos.':'Email ou palavra-passe incorretos.');return}
+    enter(data.session);
+  }
+});
+sb.auth.onAuthStateChange((ev)=>{if(ev==='SIGNED_OUT'){db={contacts:[],deals:[],tasks:[],team:[]};showAuth()}});
+document.addEventListener('visibilitychange',async()=>{
+  if(document.visibilityState==='visible'&&!$('#app').hidden&&!$('#modal').innerHTML&&!queue.length){if(await loadAll())render()}
+});
+(async()=>{
+  const{data}=await sb.auth.getSession();
+  if(data.session)enter(data.session);else showAuth();
+})();
 </script>
 
 </body>
