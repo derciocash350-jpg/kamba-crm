@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Guia da marca Kamba</title>
+<meta name="theme-color" content="#0d7a6e">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+/* Layout: guia de uma coluna larga com blocos por tema (logótipo, cor, tipo, voz, exemplos) */
+:root{
+  --bg:#f3f6f6; --surface:#ffffff; --fg:#13201e; --muted:#566865; --line:#dce4e3;
+  --verde:#0d7a6e; --mata:#0b4f48; --sol:#f0b43a; --nevoa:#f3f6f6; --tinta:#13201e;
+  --accent:#0d7a6e; --accent-ink:#ffffff;
+  --f-display:'Space Grotesk',system-ui,sans-serif; --f-body:'Inter',system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1716; --surface:#152220; --fg:#e6f0ee; --muted:#9bb0ac; --line:#263a37;
+  --accent:#3fc5b4; --accent-ink:#06211d;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--f-body)}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance;line-height:1.1}
+p{margin:0}
+.wrap{max-width:980px;margin:0 auto;padding-inline:max(20px,env(safe-area-inset-left,0px)) max(20px,env(safe-area-inset-right,0px));padding-block:48px 72px}
+.wrap>section{margin-top:56px}
+h1{font-size:clamp(34px,5vw,52px);letter-spacing:-.02em}
+h2{font-size:28px;margin-bottom:8px}
+.lead{color:var(--muted);font-size:18px;margin-top:14px;max-width:38em}
+.sub{color:var(--muted);margin-bottom:20px;max-width:40em}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px;min-width:0}
+.stage{display:grid;place-items:center;min-height:170px;border-radius:14px;padding:20px;border:1px solid var(--line)}
+.stage.dark{background:var(--mata);border-color:var(--mata)}
+.stage.light{background:#fff}
+.lock{display:flex;align-items:center;gap:12px;font:700 30px var(--f-display);letter-spacing:-.01em}
+.lock img{width:48px;height:48px;border-radius:12px}
+.stage.dark .lock{color:#eaf6f3}
+.cap{font-size:13px;color:var(--muted);margin-top:10px}
+.sw{border-radius:14px;overflow:hidden;border:1px solid var(--line);background:var(--surface)}
+.sw i{display:block;height:92px}
+.sw div{padding:12px 14px}
+.sw b{font-family:var(--f-display);font-size:16px;display:block}
+.sw code{font-size:13px;color:var(--muted)}
+.sw p{font-size:13px;color:var(--muted);margin-top:4px}
+.type .a{font:700 40px/1.1 var(--f-display);letter-spacing:-.02em}
+.type .b{font:400 17px/1.6 var(--f-body);margin-top:10px}
+.type small{display:block;color:var(--muted);font-size:13px;margin-top:10px}
+.voz{display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (max-width:640px){.voz{grid-template-columns:minmax(0,1fr)}}
+.voz .sim,.voz .nao{border-radius:14px;padding:18px 20px;font-size:15px;min-width:0}
+.voz .sim{background:color-mix(in srgb,var(--verde) 12%,var(--surface));border:1px solid color-mix(in srgb,var(--verde) 35%,var(--line))}
+.voz .nao{background:var(--surface);border:1px solid var(--line);color:var(--muted)}
+.voz b{display:block;font:600 12px var(--f-body);letter-spacing:.07em;text-transform:uppercase;margin-bottom:6px}
+.btn{display:inline-block;padding:11px 18px;border-radius:10px;font:600 15px var(--f-body);background:var(--verde);color:#fff;border:1px solid var(--verde)}
+.btn.sec{background:var(--surface);color:var(--fg);border-color:var(--line)}
+.chip{display:inline-block;padding:3px 11px;border-radius:99px;font-size:12px;font-weight:600;background:#dff1ee;color:#0d7a6e}
+.chip.sol{background:#fcefd0;color:#7a5200}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+ul.regras{margin:0;padding-left:20px;display:grid;gap:6px;color:var(--fg)}
+a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="lock" style="color:var(--fg)"><img src="assets/favicon.svg" alt="" width="48" height="48" style="border-radius:12px">Kamba CRM</div>
+    <h1 style="margin-top:36px">Guia da marca</h1>
+    <p class="lead">Kamba quer dizer amigo em quimbundo. A marca tem de soar a isso: um parceiro próximo e de confiança para quem vende todos os dias.</p>
+  </header>
+
+  <section>
+    <h2>Logótipo</h2>
+    <p class="sub">Um K feito de traços redondos, como uma pessoa de braços abertos, com um ponto dourado que lembra o sol e o negócio fechado.</p>
+    <div class="grid">
+      <div><div class="stage light"><div class="lock" style="color:#13201e"><img src="assets/favicon.svg" alt="">Kamba CRM</div></div><p class="cap">Sobre fundo claro</p></div>
+      <div><div class="stage dark"><div class="lock"><img src="assets/favicon.svg" alt="">Kamba CRM</div></div><p class="cap">Sobre verde escuro</p></div>
+      <div><div class="stage light"><div class="row" style="gap:18px"><img src="assets/favicon.svg" alt="" width="96" height="96" style="border-radius:24px"><img src="assets/favicon.svg" alt="" width="48" height="48" style="border-radius:12px"><img src="assets/favicon.svg" alt="" width="24" height="24" style="border-radius:6px"><img src="assets/favicon.svg" alt="" width="16" height="16" style="border-radius:4px"></div></div><p class="cap">Símbolo sozinho, do ícone da aplicação ao separador do navegador</p></div>
+    </div>
+    <ul class="regras" style="margin-top:20px">
+      <li>Deixa à volta do logótipo um espaço livre igual à largura do ponto dourado.</li>
+      <li>Tamanho mínimo: 16 px para o símbolo, 100 px de largura para o símbolo com o nome.</li>
+      <li>Não alteres as cores, não rodes o símbolo e não ponhas o ponto dourado noutro sítio.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Cores</h2>
+    <p class="sub">O verde-azulado é a cor da marca. O dourado é o sol e serve só para destacar. Nunca o uses para texto sobre fundo claro.</p>
+    <div class="grid">
+      <div class="sw"><i style="background:#0d7a6e"></i><div><b>Verde Kamba</b><code>#0D7A6E</code><p>Botões, ligações e o símbolo.</p></div></div>
+      <div class="sw"><i style="background:#0b4f48"></i><div><b>Mata</b><code>#0B4F48</code><p>Faixas escuras e fundos de destaque.</p></div></div>
+      <div class="sw"><i style="background:#f0b43a"></i><div><b>Sol</b><code>#F0B43A</code><p>Um detalhe por ecrã: marcador, ponto, selo.</p></div></div>
+      <div class="sw"><i style="background:#f3f6f6;border-bottom:1px solid #dce4e3"></i><div><b>Névoa</b><code>#F3F6F6</code><p>Fundo geral, com um toque de verde.</p></div></div>
+      <div class="sw"><i style="background:#13201e"></i><div><b>Tinta</b><code>#13201E</code><p>Texto e títulos.</p></div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Tipografia</h2>
+    <p class="sub">Dois tipos de letra, ambos gratuitos na Google Fonts.</p>
+    <div class="grid type">
+      <div class="card"><div class="a">Space Grotesk</div><div class="b">Títulos, números e o nome da marca. Peso 500 e 700, com espaçamento ligeiramente apertado nos títulos grandes.</div><small>Exemplo: 4 800 000 Kz</small></div>
+      <div class="card"><div class="a" style="font-family:var(--f-body);font-weight:600;font-size:36px">Inter</div><div class="b">Texto corrido, formulários e tabelas. Peso 400 para texto, 500 e 600 para destaques e botões.</div><small>Exemplo: Fecho previsto 12/12/2026</small></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Voz</h2>
+    <p class="sub">Próxima e confiável. Falamos como um colega que ajuda, com frases curtas e palavras do dia a dia.</p>
+    <div class="voz">
+      <div class="sim"><b>Assim</b>“Ainda não há contactos. Cria o primeiro e começa a acompanhar a venda.”</div>
+      <div class="nao"><b>Evitar</b>“Nenhum registo foi encontrado na base de dados de entidades.”</div>
+      <div class="sim"><b>Assim</b>“Tens 3 tarefas em atraso. Começa pela do Banco Horizonte.”</div>
+      <div class="nao"><b>Evitar</b>“Alerta: existem pendências vencidas no módulo de tarefas.”</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Componentes</h2>
+    <p class="sub">Cantos suaves, muito espaço e um único destaque por ecrã.</p>
+    <div class="card">
+      <div class="row"><span class="btn">Pedir demonstração</span><span class="btn sec">Ver funcionalidades</span><span class="chip">Cliente</span><span class="chip sol">Proposta</span></div>
+    </div>
+  </section>
+</div>
+</body>
+</html>

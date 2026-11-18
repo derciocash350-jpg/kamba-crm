@@ -4,7 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Kamba CRM</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230d7a6e'/%3E%3Cg stroke='white' stroke-width='2.2' fill='none'%3E%3Ccircle cx='9' cy='16' r='3'/%3E%3Ccircle cx='23' cy='9' r='3'/%3E%3Ccircle cx='23' cy='23' r='3'/%3E%3Cpath d='M12 15l8-4M12 17l8 4'/%3E%3C/g%3E%3C/svg%3E">
+<meta name="theme-color" content="#0d7a6e">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap">
 <style>
 /* Layout: barra lateral fixa + área de trabalho; em ecrãs estreitos a barra passa para o topo */
@@ -140,7 +142,7 @@ tbody tr{cursor:pointer}tbody tr:hover{background:var(--accent-soft)}
 <div id="auth"></div>
 <div class="app" id="app" hidden>
   <aside class="side">
-    <div class="brand"><i><svg viewBox="0 0 16 16"><circle cx="4" cy="8" r="2"/><circle cx="12" cy="4" r="2"/><circle cx="12" cy="12" r="2"/><path d="M6 7l4-2M6 9l4 2"/></svg></i>Kamba CRM</div>
+    <div class="brand"><img src="assets/favicon.svg" width="30" height="30" alt="" style="border-radius:8px;flex:none">Kamba CRM</div>
     <nav id="nav"></nav>
     <div class="who"><span id="who"></span><button class="btn" data-a="out">Sair</button><a class="link" href="index.html" style="text-decoration:none">Página de vendas</a></div>
   </aside>
@@ -408,7 +410,7 @@ document.addEventListener('dragend',()=>{dragId=null;document.querySelectorAll('
 function showAuth(mode='login',msg='',ok=false){
   $('#app').hidden=true;$('#auth').hidden=false;
   const su=mode==='signup';
-  $('#auth').innerHTML=`<div class="authbox card"><div class="brand"><i><svg viewBox="0 0 16 16"><circle cx="4" cy="8" r="2"/><circle cx="12" cy="4" r="2"/><circle cx="12" cy="12" r="2"/><path d="M6 7l4-2M6 9l4 2"/></svg></i>Kamba CRM</div>
+  $('#auth').innerHTML=`<div class="authbox card"><div class="brand"><img src="assets/favicon.svg" width="30" height="30" alt="" style="border-radius:8px;flex:none">Kamba CRM</div>
   <h1 style="font-size:22px">${su?'Criar conta':'Entrar'}</h1>${msg?`<div class="msg ${ok?'ok':''}">${esc(msg)}</div>`:''}
   <form id="af" data-mode="${mode}" novalidate><label>Email<input id="a_em" type="email" autocomplete="email" required></label><label>Palavra-passe<input id="a_pw" type="password" autocomplete="${su?'new-password':'current-password'}" minlength="8" required></label><button class="btn pri" id="a_go">${su?'Criar conta':'Entrar'}</button></form>
   <div class="m">${su?'Já tens conta?':'Ainda não tens conta?'} <button class="link" data-a="authmode" data-m="${su?'login':'signup'}">${su?'Entrar':'Criar conta'}</button></div></div>`;
