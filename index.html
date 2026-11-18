@@ -197,14 +197,15 @@ const sb=supabase.createClient(SB_URL,SB_KEY);
 let db={contacts:[],deals:[],tasks:[],team:[]};
 let me={email:'',papel:''};
 const TBL={contacts:'contactos',deals:'negocios',tasks:'tarefas',team:'equipa'};
+const rp=o=>o.responsavel?{responsavel:o.responsavel}:{};
 const toRow={
-  contacts:o=>({id:o.id,nome:o.nome,empresa:o.empresa,cargo:o.cargo,email:o.email,tel:o.tel,cidade:o.cidade,estado:o.estado,notas:o.notas}),
-  deals:o=>({id:o.id,titulo:o.titulo,contacto_id:o.contacto||null,valor:o.valor,etapa:o.etapa,fecho:o.fecho||null,notas:o.notas||''}),
-  tasks:o=>({id:o.id,titulo:o.titulo,contacto_id:o.contacto||null,data:o.data,feito:!!o.feito}),
+  contacts:o=>({id:o.id,nome:o.nome,empresa:o.empresa,cargo:o.cargo,email:o.email,tel:o.tel,cidade:o.cidade,estado:o.estado,notas:o.notas,...rp(o)}),
+  deals:o=>({id:o.id,titulo:o.titulo,contacto_id:o.contacto||null,valor:o.valor,etapa:o.etapa,fecho:o.fecho||null,notas:o.notas||'',...rp(o)}),
+  tasks:o=>({id:o.id,titulo:o.titulo,contacto_id:o.contacto||null,data:o.data,feito:!!o.feito,...rp(o)}),
   team:o=>({email:o.email,papel:o.papel})};
 const fromRow={
-  deals:r=>({id:r.id,titulo:r.titulo,contacto:r.contacto_id||'',valor:Number(r.valor),etapa:r.etapa,fecho:r.fecho||'',notas:r.notas||''}),
-  tasks:r=>({id:r.id,titulo:r.titulo,contacto:r.contacto_id||'',data:r.data,feito:r.feito})};
+  deals:r=>({id:r.id,titulo:r.titulo,contacto:r.contacto_id||'',valor:Number(r.valor),etapa:r.etapa,fecho:r.fecho||'',notas:r.notas||'',responsavel:r.responsavel||''}),
+  tasks:r=>({id:r.id,titulo:r.titulo,contacto:r.contacto_id||'',data:r.data,feito:r.feito,responsavel:r.responsavel||''})};
 let queue=[];
 const touch=(k,o)=>queue.push({op:'up',k,row:toRow[k](o)});
 const drop=(k,id)=>queue.push({op:'del',k,id});
@@ -259,8 +260,11 @@ addEventListener('hashchange',route);
 
 function vTeam(){
   const adm=me.papel==='admin';
+  const api=SB_URL+'/functions/v1/api';
   return`<div class="head"><div><h1>Equipa</h1><p>${adm?'Adiciona o email de quem pode entrar no CRM. A pessoa cria a conta com esse mesmo email.':'Pessoas com acesso ao CRM.'}</p></div>${adm?'<button class="btn pri" data-a="newm">Adicionar pessoa</button>':''}</div>
-  <div class="card"><div class="list">${db.team.map(m=>`<div class="it"><span class="av">${esc(ini(m.email.split('@')[0]))}</span><div class="grow"><div class="t">${esc(m.email)}</div></div><span class="chip ${m.papel==='admin'?'good':'mut'}">${m.papel==='admin'?'Administrador':'Membro'}</span>${adm&&m.email.toLowerCase()!==me.email.toLowerCase()?`<button class="btn bad" data-a="rmm" data-id="${esc(m.email)}">Remover</button>`:''}</div>`).join('')}</div></div>`;
+  <div class="card"><div class="list">${db.team.map(m=>{const self=m.email.toLowerCase()===me.email.toLowerCase();return`<div class="it"><span class="av">${esc(ini(m.email.split('@')[0]))}</span><div class="grow"><div class="t">${esc(m.email)}</div></div>${adm&&!self?`<select data-a="role" data-id="${esc(m.email)}" aria-label="Papel de ${esc(m.email)}">${opt(Object.keys(PAPEL),m.papel,k=>[k,PAPEL[k]])}</select><button class="btn bad" data-a="rmm" data-id="${esc(m.email)}">Remover</button>`:`<span class="chip ${m.papel==='admin'?'good':'mut'}">${PAPEL[m.papel]||m.papel}</span>`}</div>`}).join('')}</div></div>
+  <div class="card" style="margin-top:12px"><h2>Permissões</h2><div class="m" style="font-size:13px;line-height:1.6"><b>Administrador:</b> vê e altera tudo e gere a equipa.<br><b>Gestor:</b> vê e altera tudo, incluindo eliminar registos.<br><b>Vendedor:</b> só vê e altera os contactos, negócios e tarefas de que é responsável. Não elimina registos.</div></div>
+  ${adm?`<div class="card" style="margin-top:12px"><h2>API</h2><p class="m" style="font-size:13px;margin:0 0 8px">Para ligar outros sistemas aos contactos, negócios e tarefas. Envia a chave secreta no cabeçalho <code>x-api-key</code>. Nunca a coloques no site.</p><div class="tw"><pre style="margin:0;padding:12px;font-size:12px;white-space:pre;overflow-x:auto">curl ${esc(api)}/contactos \\\n  -H "x-api-key: A_TUA_CHAVE"</pre></div><p class="m" style="font-size:12px;margin:8px 0 0">Recursos: contactos, negócios (negocios) e tarefas. Métodos: GET, POST, PATCH e DELETE. Documentação completa no ficheiro API.md do repositório.</p></div>`:''}`;
 }
 function vDash(){
   if(!db.contacts.length&&!db.deals.length&&!db.tasks.length)return`<div class="head"><div><h1>Painel</h1><p>O CRM ainda está vazio.</p></div></div><div class="card empty"><p>Cria o primeiro contacto ou carrega dados de exemplo para ver como funciona.</p><div class="acts" style="justify-content:center"><button class="btn pri" data-a="newc">Novo contacto</button><button class="btn" data-a="samples">Carregar exemplos</button></div></div>`;
@@ -272,7 +276,7 @@ function vDash(){
   const fun=STAGES.slice(0,4).map(s=>{const ds=db.deals.filter(d=>d.etapa===s.id);return{s,n:ds.length,v:ds.reduce((a,d)=>a+d.valor,0)}});
   const mx=Math.max(1,...fun.map(f=>f.v));
   const nt=db.tasks.filter(t=>!t.feito).sort((a,b)=>a.data.localeCompare(b.data)).slice(0,5);
-  return`<div class="head"><div><h1>Painel</h1><p>Resumo das vendas em ${new Date().toLocaleDateString('pt-PT',{day:'numeric',month:'long',year:'numeric'})}</p></div></div>
+  return`<div class="head"><div><h1>Painel</h1><p>${isMgr()?'Resumo das vendas':'Os teus números'} em ${new Date().toLocaleDateString('pt-PT',{day:'numeric',month:'long',year:'numeric'})}</p></div></div>
   <div class="kpis">
     <div class="card kpi"><div class="l">Receita prevista</div><div class="v">${kzc(fc)}</div><div class="s">ponderada pela etapa</div></div>
     <div class="card kpi"><div class="l">Negócios abertos</div><div class="v">${open.length}</div><div class="s">${kzc(open.reduce((a,d)=>a+d.valor,0))} em carteira</div></div>
@@ -287,17 +291,17 @@ function vDash(){
 function vContacts(){
   return`<div class="head"><div><h1>Contactos</h1><p>${db.contacts.length} pessoas em ${new Set(db.contacts.map(c=>c.empresa)).size} empresas</p></div><button class="btn pri" data-a="newc">Novo contacto</button></div>
   <div class="tools"><input id="q" type="search" placeholder="Pesquisar por nome, empresa ou email" value="${esc(ui.q)}" aria-label="Pesquisar contactos"><select id="st" aria-label="Filtrar por estado"><option value="">Todos os estados</option>${STATUS.map(s=>`<option ${ui.st===s?'selected':''}>${s}</option>`).join('')}</select></div>
-  <div class="tw"><table><thead><tr><th>Nome</th><th>Empresa</th><th>Contacto</th><th>Cidade</th><th>Estado</th></tr></thead><tbody id="clist"></tbody></table></div>`;
+  <div class="tw"><table><thead><tr><th>Nome</th><th>Empresa</th><th>Contacto</th><th>Cidade</th><th>Estado</th>${isMgr()?'<th>Responsável</th>':''}</tr></thead><tbody id="clist"></tbody></table></div>`;
 }
 function listContacts(){
   const q=ui.q.toLowerCase();
   const r=db.contacts.filter(c=>(!ui.st||c.estado===ui.st)&&(!q||(c.nome+c.empresa+c.email).toLowerCase().includes(q)));
-  $('#clist').innerHTML=r.length?r.map(c=>`<tr data-a="editc" data-id="${c.id}"><td><div style="display:flex;gap:10px;align-items:center"><span class="av">${esc(ini(c.nome))}</span><div><div class="t">${esc(c.nome)}</div><div class="m">${esc(c.cargo)}</div></div></div></td><td>${esc(c.empresa)}</td><td><div>${esc(c.email)}</div><div class="m">${esc(c.tel)}</div></td><td>${esc(c.cidade)}</td><td><span class="chip ${c.estado==='Cliente'?'good':c.estado==='Lead'?'':'mut'}">${c.estado}</span></td></tr>`).join(''):'<tr><td colspan="5"><div class="empty">Nenhum contacto encontrado.</div></td></tr>';
+  $('#clist').innerHTML=r.length?r.map(c=>`<tr data-a="editc" data-id="${c.id}"><td><div style="display:flex;gap:10px;align-items:center"><span class="av">${esc(ini(c.nome))}</span><div><div class="t">${esc(c.nome)}</div><div class="m">${esc(c.cargo)}</div></div></div></td><td>${esc(c.empresa)}</td><td><div>${esc(c.email)}</div><div class="m">${esc(c.tel)}</div></td><td>${esc(c.cidade)}</td><td><span class="chip ${c.estado==='Cliente'?'good':c.estado==='Lead'?'':'mut'}">${c.estado}</span></td>${isMgr()?`<td class="m">${esc((c.responsavel||'').split('@')[0])}</td>`:''}</tr>`).join(''):'<tr><td colspan="6"><div class="empty">Nenhum contacto encontrado.</div></td></tr>';
 }
 function vPipe(){
   const open=db.deals.filter(isOpen);
   return`<div class="head"><div><h1>Pipeline</h1><p>${open.length} negócios abertos. Arrasta os cartões entre colunas para mudar de etapa.</p></div><button class="btn pri" data-a="newd">Novo negócio</button></div>
-  <div class="board">${STAGES.map(s=>{const ds=db.deals.filter(d=>d.etapa===s.id);return`<div class="col" data-stage="${s.id}"><h3>${s.nome}<span class="tot">${ds.length} · ${kzc(ds.reduce((a,d)=>a+d.valor,0))}</span></h3>${ds.map(d=>`<div class="deal" draggable="true" data-a="editd" data-id="${d.id}"><div class="t">${esc(d.titulo)}</div><div class="m">${esc(ccomp(d.contacto)||'Sem empresa')}${d.contacto?' · '+esc(cname(d.contacto)):''}</div><div class="val">${kz(d.valor)}</div><div class="m">Fecho previsto ${fdate(d.fecho)}</div></div>`).join('')}</div>`}).join('')}</div>`;
+  <div class="board">${STAGES.map(s=>{const ds=db.deals.filter(d=>d.etapa===s.id);return`<div class="col" data-stage="${s.id}"><h3>${s.nome}<span class="tot">${ds.length} · ${kzc(ds.reduce((a,d)=>a+d.valor,0))}</span></h3>${ds.map(d=>`<div class="deal" draggable="true" data-a="editd" data-id="${d.id}"><div class="t">${esc(d.titulo)}</div><div class="m">${esc(ccomp(d.contacto)||'Sem empresa')}${d.contacto?' · '+esc(cname(d.contacto)):''}</div><div class="val">${kz(d.valor)}</div><div class="m">Fecho previsto ${fdate(d.fecho)}${isMgr()&&d.responsavel?' · '+esc(d.responsavel.split('@')[0]):''}</div></div>`).join('')}</div>`}).join('')}</div>`;
 }
 function vTasks(){
   const f=ui.tf;
@@ -319,6 +323,9 @@ function modal(title,body,onSave,onDel){
   if(onDel){const b=$('#del');b.addEventListener('click',()=>{if(b.dataset.s){onDel();closeM();save();render()}else{b.dataset.s=1;b.textContent='Confirmar eliminação'}})}
   const first=f.querySelector('input,select');first&&first.focus();
 }
+const isMgr=()=>me.papel!=='vendedor';
+const PAPEL={admin:'Administrador',gestor:'Gestor',vendedor:'Vendedor'};
+const respSel=v=>isMgr()?sel('Responsável','f_resp',opt(db.team.map(m=>m.email),v||me.email),'w'):'';
 const closeM=()=>{$('#modal').innerHTML=''};
 const inp=(l,id,v='',t='text',w='')=>`<label class="${w}">${l}<input id="${id}" type="${t}" value="${esc(v)}"></label>`;
 const sel=(l,id,o,w='')=>`<label class="${w}">${l}<select id="${id}">${o}</select></label>`;
@@ -328,33 +335,33 @@ function editContact(id){
   const c=db.contacts.find(x=>x.id===id)||{estado:'Lead'};
   const rel=id?`<div class="rel w" style="grid-column:1/-1">${db.deals.filter(d=>d.contacto===id).length} negócio(s) e ${db.tasks.filter(t=>t.contacto===id).length} tarefa(s) associados.</div>`:'';
   modal(id?'Editar contacto':'Novo contacto',
-    inp('Nome','f_nome',c.nome,'text','w')+inp('Empresa','f_emp',c.empresa)+inp('Cargo','f_cargo',c.cargo)+inp('Email','f_email',c.email,'email')+inp('Telefone','f_tel',c.tel,'tel')+inp('Cidade','f_cid',c.cidade)+sel('Estado','f_est',opt(STATUS,c.estado))+`<label class="w">Notas<textarea id="f_not">${esc(c.notas)}</textarea></label>`+rel,
+    inp('Nome','f_nome',c.nome,'text','w')+inp('Empresa','f_emp',c.empresa)+inp('Cargo','f_cargo',c.cargo)+inp('Email','f_email',c.email,'email')+inp('Telefone','f_tel',c.tel,'tel')+inp('Cidade','f_cid',c.cidade)+sel('Estado','f_est',opt(STATUS,c.estado))+`<label class="w">Notas<textarea id="f_not">${esc(c.notas)}</textarea></label>`+respSel(c.responsavel)+rel,
     g=>{if(reqName(g,'f_nome','Indica o nome')===false)return false;
-      const o={nome:g('f_nome'),empresa:g('f_emp'),cargo:g('f_cargo'),email:g('f_email'),tel:g('f_tel'),cidade:g('f_cid'),estado:g('f_est'),notas:g('f_not')};
+      const o={nome:g('f_nome'),empresa:g('f_emp'),cargo:g('f_cargo'),email:g('f_email'),tel:g('f_tel'),cidade:g('f_cid'),estado:g('f_est'),notas:g('f_not'),...(isMgr()?{responsavel:g('f_resp')}:{})};
       let obj;if(id){obj=Object.assign(db.contacts.find(x=>x.id===id),o)}else{obj={id:uid(),...o};db.contacts.unshift(obj)}touch('contacts',obj)},
-    id&&(()=>{drop('contacts',id);db.contacts=db.contacts.filter(x=>x.id!==id);db.deals.forEach(d=>{if(d.contacto===id)d.contacto=''});db.tasks.forEach(t=>{if(t.contacto===id)t.contacto=''})}));
+    id&&isMgr()&&(()=>{drop('contacts',id);db.contacts=db.contacts.filter(x=>x.id!==id);db.deals.forEach(d=>{if(d.contacto===id)d.contacto=''});db.tasks.forEach(t=>{if(t.contacto===id)t.contacto=''})}));
 }
 function editDeal(id,stg){
   const d=db.deals.find(x=>x.id===id)||{etapa:stg||'novo',valor:'',fecho:off(30)};
   modal(id?'Editar negócio':'Novo negócio',
-    inp('Título','f_tit',d.titulo,'text','w')+inp('Valor (Kz)','f_val',d.valor,'number')+sel('Etapa','f_et',opt(STAGES,d.etapa,s=>[s.id,s.nome]))+sel('Contacto','f_con',cOpts(d.contacto))+inp('Fecho previsto','f_fe',d.fecho,'date')+`<label class="w">Notas<textarea id="f_not">${esc(d.notas)}</textarea></label>`,
+    inp('Título','f_tit',d.titulo,'text','w')+inp('Valor (Kz)','f_val',d.valor,'number')+sel('Etapa','f_et',opt(STAGES,d.etapa,s=>[s.id,s.nome]))+sel('Contacto','f_con',cOpts(d.contacto))+inp('Fecho previsto','f_fe',d.fecho,'date')+`<label class="w">Notas<textarea id="f_not">${esc(d.notas)}</textarea></label>`+respSel(d.responsavel),
     g=>{if(reqName(g,'f_tit','Indica o título')===false)return false;
-      const o={titulo:g('f_tit'),valor:Math.max(0,+g('f_val')||0),etapa:g('f_et'),contacto:g('f_con'),fecho:g('f_fe'),notas:g('f_not')};
+      const o={titulo:g('f_tit'),valor:Math.max(0,+g('f_val')||0),etapa:g('f_et'),contacto:g('f_con'),fecho:g('f_fe'),notas:g('f_not'),...(isMgr()?{responsavel:g('f_resp')}:{})};
       let obj;if(id){obj=Object.assign(db.deals.find(x=>x.id===id),o)}else{obj={id:uid(),...o};db.deals.push(obj)}touch('deals',obj)},
-    id&&(()=>{drop('deals',id);db.deals=db.deals.filter(x=>x.id!==id)}));
+    id&&isMgr()&&(()=>{drop('deals',id);db.deals=db.deals.filter(x=>x.id!==id)}));
 }
 function editTask(id){
   const t=db.tasks.find(x=>x.id===id)||{data:today()};
   modal(id?'Editar tarefa':'Nova tarefa',
-    inp('Tarefa','f_tit',t.titulo,'text','w')+sel('Contacto','f_con',cOpts(t.contacto))+inp('Data','f_dt',t.data,'date'),
+    inp('Tarefa','f_tit',t.titulo,'text','w')+sel('Contacto','f_con',cOpts(t.contacto))+inp('Data','f_dt',t.data,'date')+respSel(t.responsavel),
     g=>{if(reqName(g,'f_tit','Indica a tarefa')===false)return false;
-      const o={titulo:g('f_tit'),contacto:g('f_con'),data:g('f_dt')||today()};
+      const o={titulo:g('f_tit'),contacto:g('f_con'),data:g('f_dt')||today(),...(isMgr()?{responsavel:g('f_resp')}:{})};
       let obj;if(id){obj=Object.assign(db.tasks.find(x=>x.id===id),o)}else{obj={id:uid(),...o,feito:false};db.tasks.push(obj)}touch('tasks',obj)},
-    id&&(()=>{drop('tasks',id);db.tasks=db.tasks.filter(x=>x.id!==id)}));
+    id&&isMgr()&&(()=>{drop('tasks',id);db.tasks=db.tasks.filter(x=>x.id!==id)}));
 }
 
 function editMember(){
-  modal('Adicionar pessoa',inp('Email','f_em','','email','w')+sel('Papel','f_pp','<option value="membro">Membro</option><option value="admin">Administrador</option>','w'),
+  modal('Adicionar pessoa',inp('Email','f_em','','email','w')+sel('Papel','f_pp','<option value="vendedor">Vendedor</option><option value="gestor">Gestor</option><option value="admin">Administrador</option>','w'),
     g=>{const em=g('f_em').toLowerCase();if(!/^\S+@\S+\.\S+$/.test(em)){reqName(()=>'','f_em','Indica um email válido');return false}
       if(db.team.some(m=>m.email.toLowerCase()===em)){toast('Esse email já tem acesso',true);return false}
       const o={email:em,papel:g('f_pp')};db.team.push(o);touch('team',o)});
@@ -375,6 +382,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('change',e=>{
   const el=e.target;
   if(el.dataset.a==='tick'){const t=db.tasks.find(x=>x.id===el.dataset.id);t.feito=el.checked;touch('tasks',t);save();render()}
+  if(el.dataset.a==='role'){const m=db.team.find(x=>x.email===el.dataset.id);if(m){m.papel=el.value;touch('team',m);save().then(()=>toast('Papel atualizado'));render()}}
   if(el.id==='st'){ui.st=el.value;listContacts()}
 });
 document.addEventListener('input',e=>{if(e.target.id==='q'){ui.q=e.target.value;listContacts()}});
@@ -406,7 +414,7 @@ async function enter(session){
   if(data==='sem_acesso'||data==='sem_sessao'){showNoAccess();return}
   me.papel=data;
   if(!await loadAll())return;
-  $('#who').textContent=me.email+(me.papel==='admin'?' (administrador)':'');
+  $('#who').textContent=me.email+' ('+(PAPEL[me.papel]||me.papel).toLowerCase()+')';
   $('#auth').hidden=true;$('#app').hidden=false;route();
 }
 document.addEventListener('click',e=>{const b=e.target.closest('[data-a="authmode"]');if(b)showAuth(b.dataset.m)});
