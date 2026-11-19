@@ -2,8 +2,8 @@
 
 Endereço base: `https://dywzfjrisvgkujamueql.supabase.co/functions/v1/api`
 
-Todos os pedidos precisam da chave secreta no cabeçalho `x-api-key`.
-A chave dá acesso a todos os dados. Guarda-a só em servidores ou sistemas de confiança e nunca no site.
+Todos os pedidos precisam da chave da tua empresa no cabeçalho `x-api-key`.
+O administrador cria as chaves em Equipa > API (plano Empresa). A chave só é mostrada uma vez e dá acesso apenas aos dados da tua empresa. Guarda-a só em servidores ou sistemas de confiança e nunca no site.
 
 ## Recursos
 

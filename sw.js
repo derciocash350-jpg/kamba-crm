@@ -1,6 +1,6 @@
 /* Kamba CRM: guarda a aplicação no aparelho para abrir sem internet.
    Os pedidos à base de dados (supabase.co) nunca passam por aqui. */
-const VERSAO = 'kamba-v1';
+const VERSAO = 'kamba-v2';
 const BIBLIOTECA = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js';
 const BASE = ['app.html', 'index.html', 'manifest.webmanifest', 'assets/favicon.svg', 'assets/icon-192.png', 'assets/icon-512.png'];
 
@@ -32,7 +32,7 @@ self.addEventListener('fetch', (e) => {
     e.respondWith(
       fetch(req)
         .then((r) => { const c = r.clone(); caches.open(VERSAO).then((x) => x.put(req, c)); return r; })
-        .catch(() => caches.match(req, { ignoreSearch: true }).then((r) => r || caches.match('app.html'))),
+        .catch(() => caches.match(req, { ignoreSearch: true }).then((r) => r || caches.match(req.url.includes('app.html') ? 'app.html' : 'index.html'))),
     );
     return;
   }
