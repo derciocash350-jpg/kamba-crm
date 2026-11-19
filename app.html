@@ -83,13 +83,15 @@ th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.06em;
 td{padding:11px 14px;border-top:1px solid var(--line)}
 tbody tr{cursor:pointer}tbody tr:hover{background:var(--accent-soft)}
 .av{width:32px;height:32px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-weight:600;font-size:12px;flex:none}
-.board{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(250px,1fr);gap:12px;overflow-x:auto;padding-bottom:8px}
+.board{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(190px,1fr);gap:12px;overflow-x:auto;padding-bottom:8px}
 .col{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:8px;min-height:280px}
 .col.over{border-color:var(--accent);background:var(--accent-soft)}
 .col h3{font-size:14px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .col .tot{font-size:12px;color:var(--muted);font-weight:400;font-family:var(--f-body)}
 .deal{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:grab;box-shadow:var(--shadow)}
 .deal:active{cursor:grabbing}
+.mv{display:none;margin-top:8px;width:100%;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+@media (hover:none){.mv{display:block}}
 .deal .val{font:600 15px var(--f-display);margin-top:6px;font-variant-numeric:tabular-nums}
 .tk{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--line)}
 .tk:first-child{border-top:0}
@@ -312,7 +314,7 @@ function listContacts(){
 function vPipe(){
   const open=db.deals.filter(isOpen);
   return`<div class="head"><div><h1>Pipeline</h1><p>${open.length} negócios abertos. Arrasta os cartões entre colunas para mudar de etapa.</p></div><button class="btn pri" data-a="newd">Novo negócio</button></div>
-  <div class="board">${STAGES.map(s=>{const ds=db.deals.filter(d=>d.etapa===s.id);return`<div class="col" data-stage="${s.id}"><h3><span style="display:flex;align-items:center;gap:7px"><i style="width:9px;height:9px;border-radius:50%;background:${s.cor};display:inline-block"></i>${s.nome}</span><span class="tot">${ds.length} · ${kzc(ds.reduce((a,d)=>a+d.valor,0))}</span></h3>${ds.map(d=>`<div class="deal" draggable="true" data-a="editd" data-id="${d.id}"><div class="t">${esc(d.titulo)}</div><div class="m">${esc(ccomp(d.contacto)||'Sem empresa')}${d.contacto?' · '+esc(cname(d.contacto)):''}</div><div class="val">${kz(d.valor)}</div><div class="m">Fecho previsto ${fdate(d.fecho)}${isMgr()&&d.responsavel?' · '+esc(d.responsavel.split('@')[0]):''}</div></div>`).join('')}</div>`}).join('')}</div>`;
+  <div class="board">${STAGES.map(s=>{const ds=db.deals.filter(d=>d.etapa===s.id);return`<div class="col" data-stage="${s.id}"><h3><span style="display:flex;align-items:center;gap:7px"><i style="width:9px;height:9px;border-radius:50%;background:${s.cor};display:inline-block"></i>${s.nome}</span><span class="tot">${ds.length} · ${kzc(ds.reduce((a,d)=>a+d.valor,0))}</span></h3>${ds.map(d=>`<div class="deal" draggable="true" data-a="editd" data-id="${d.id}"><div class="t">${esc(d.titulo)}</div><div class="m">${esc(ccomp(d.contacto)||'Sem empresa')}${d.contacto?' · '+esc(cname(d.contacto)):''}</div><div class="val">${kz(d.valor)}</div><div class="m">Fecho previsto ${fdate(d.fecho)}${isMgr()&&d.responsavel?' · '+esc(d.responsavel.split('@')[0]):''}</div><select class="mv" data-a="mv" data-id="${d.id}" aria-label="Mover para outra etapa">${opt(STAGES,d.etapa,x=>[x.id,'Mover para: '+x.nome])}</select></div>`).join('')}</div>`}).join('')}</div>`;
 }
 function vTasks(){
   const f=ui.tf;
@@ -394,6 +396,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('change',e=>{
   const el=e.target;
   if(el.dataset.a==='tick'){const t=db.tasks.find(x=>x.id===el.dataset.id);t.feito=el.checked;touch('tasks',t);save();render()}
+  if(el.dataset.a==='mv'){const d=db.deals.find(x=>x.id===el.dataset.id);if(d){d.etapa=el.value;touch('deals',d);save();render()}}
   if(el.dataset.a==='role'){const m=db.team.find(x=>x.email===el.dataset.id);if(m){m.papel=el.value;touch('team',m);save().then(()=>toast('Papel atualizado'));render()}}
   if(el.id==='st'){ui.st=el.value;listContacts()}
 });
@@ -401,7 +404,7 @@ document.addEventListener('input',e=>{if(e.target.id==='q'){ui.q=e.target.value;
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeM()});
 let dragId=null;
 document.addEventListener('dragstart',e=>{const d=e.target.closest('.deal');if(d){dragId=d.dataset.id;e.dataTransfer.effectAllowed='move';try{e.dataTransfer.setData('text/plain',dragId)}catch(_){}}});
-document.addEventListener('dragover',e=>{const c=e.target.closest('.col');if(c&&dragId){e.preventDefault();document.querySelectorAll('.col.over').forEach(x=>x!==c&&x.classList.remove('over'));c.classList.add('over')}});
+document.addEventListener('dragover',e=>{const c=e.target.closest('.col');if(c&&dragId){e.preventDefault();if(e.dataTransfer)e.dataTransfer.dropEffect='move';document.querySelectorAll('.col.over').forEach(x=>x!==c&&x.classList.remove('over'));c.classList.add('over')}});
 document.addEventListener('dragleave',e=>{const c=e.target.closest('.col');if(c&&!c.contains(e.relatedTarget))c.classList.remove('over')});
 document.addEventListener('drop',e=>{const c=e.target.closest('.col');if(c&&dragId){e.preventDefault();const d=db.deals.find(x=>x.id===dragId);if(d){d.etapa=c.dataset.stage;touch('deals',d);save()}dragId=null;render()}});
 document.addEventListener('dragend',()=>{dragId=null;document.querySelectorAll('.col.over').forEach(x=>x.classList.remove('over'))});
