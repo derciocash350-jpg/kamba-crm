@@ -80,6 +80,12 @@ section{padding-block:72px}
 .sec-h{max-width:640px;margin-bottom:36px}
 .sec-h h2{font-size:clamp(28px,3.6vw,40px);letter-spacing:-.01em}
 .sec-h p{color:var(--muted);margin-top:12px;font-size:17px}
+.difs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.dif{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:26px;min-width:0}
+.dif h3{font-size:21px;margin:14px 0 10px}
+.dif p{color:var(--muted);font-size:15px}
+.dif .ic{width:42px;height:42px;border-radius:12px;background:var(--accent-soft);display:grid;place-items:center;color:var(--accent)}
+.dif .ic svg{width:22px;height:22px}
 .feat{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0;border:1px solid var(--line);border-radius:16px;background:var(--surface);overflow:hidden}
 .feat div{padding:26px 28px;border-top:1px solid var(--line);border-left:1px solid var(--line)}
 .feat div:nth-child(-n+2){border-top:0}
@@ -128,6 +134,7 @@ footer .wrap{display:flex;gap:16px;justify-content:space-between;flex-wrap:wrap}
   .feat{grid-template-columns:minmax(0,1fr)}
   .feat div{border-left:0!important;border-top:1px solid var(--line)!important}
   .feat div:first-child{border-top:0!important}
+  .difs{grid-template-columns:minmax(0,1fr)}
   .steps,.plans,.demo{grid-template-columns:minmax(0,1fr)}
   form{grid-template-columns:minmax(0,1fr)}
   .bar nav a:not(.btn){display:none}
@@ -179,6 +186,15 @@ footer .wrap{display:flex;gap:16px;justify-content:space-between;flex-wrap:wrap}
     </div>
   </div>
 
+  <section id="diferenciais" class="wrap" style="padding-bottom:0">
+    <div class="sec-h"><h2>Feito para a forma como se vende em Angola</h2><p>Os clientes falam contigo no WhatsApp, pedem orçamento e nem sempre há boa internet. O Kamba CRM foi pensado para isso.</p></div>
+    <div class="difs">
+      <div class="dif"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 01-12.4 7.4L3 20.5l1.7-5.4A8.4 8.4 0 1121 11.5z"/></svg></span><h3>WhatsApp em cada cliente</h3><p>Um toque abre a conversa com a mensagem pronta: primeiro contacto, seguimento ou proposta. Podes editar o texto antes de enviar. O CRM regista quando falaste com cada pessoa, para ninguém ficar esquecido.</p></div>
+      <div class="dif"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h8l4 4v14H7zM14 3v5h5M10 13h6M10 17h6"/></svg></span><h3>Orçamentos em kwanzas</h3><p>Cria o orçamento a partir do negócio, com os teus itens e o IVA, e guarda em PDF para enviar ao cliente. O documento tem o número, a validade e os dados da tua empresa. Não é uma fatura.</p></div>
+      <div class="dif"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5a10 10 0 0114 0M8.5 16a5 5 0 017 0M12 19.5h.01M3 3l18 18"/></svg></span><h3>Funciona com internet fraca</h3><p>Instala no telemóvel e continua a registar contactos, negócios e tarefas mesmo sem rede. Quando a ligação volta, as alterações seguem sozinhas para a equipa.</p></div>
+    </div>
+  </section>
+
   <section id="funcionalidades" class="wrap">
     <div class="sec-h"><h2>Tudo o que a equipa de vendas usa no dia a dia</h2><p>Sem módulos que ninguém abre. Quatro áreas, cada uma pensada para uma pergunta concreta.</p></div>
     <div class="feat">
@@ -207,7 +223,7 @@ footer .wrap{display:flex;gap:16px;justify-content:space-between;flex-wrap:wrap}
     <!-- Preços de exemplo: ajusta valores, limites e funcionalidades de cada plano antes de publicar. -->
     <div class="plans">
       <div class="plan"><h3>Essencial</h3><div class="price">15 000 Kz <small>/ mês</small></div><p class="note" style="margin:0">Para quem está a começar a organizar as vendas.</p>
-        <ul><li>Até 3 utilizadores</li><li>Contactos e empresas</li><li>Pipeline de vendas</li><li>Tarefas e lembretes</li><li>Painel de resultados</li></ul>
+        <ul><li>Até 3 utilizadores</li><li>Contactos e empresas</li><li>Pipeline de vendas</li><li>Tarefas e lembretes</li><li>WhatsApp com mensagens prontas</li><li>Orçamentos em PDF</li><li>Painel de resultados</li></ul>
         <a class="btn" href="#demonstracao">Pedir demonstração</a></div>
       <div class="plan hot"><span class="tag">Mais escolhido</span><h3>Equipa</h3><div class="price">35 000 Kz <small>/ mês</small></div><p class="note" style="margin:0">Para equipas com vários vendedores.</p>
         <ul><li>Até 10 utilizadores</li><li>Tudo do Essencial</li><li>Permissões: administrador, gestor e vendedor</li><li>Responsável em cada cliente e negócio</li></ul>
@@ -225,6 +241,9 @@ footer .wrap{display:flex;gap:16px;justify-content:space-between;flex-wrap:wrap}
       <details><summary>Os dados da minha empresa ficam separados dos de outras?</summary><p>Sim. Cada pessoa só entra com a conta que o administrador autorizou, e as regras da base de dados impedem o acesso de quem não foi convidado. Dentro da empresa, os vendedores só veem os registos de que são responsáveis.</p></details>
       <details><summary>Onde ficam guardados os dados?</summary><p>Numa base de dados na Europa (Irlanda), com ligação cifrada. Os dados não ficam no telemóvel nem no computador de cada pessoa.</p></details>
       <details><summary>Funciona no telemóvel?</summary><p>Sim. O CRM abre no navegador do telemóvel, do tablet e do computador, sem instalar nada.</p></details>
+      <details><summary>Funciona sem internet?</summary><p>Funciona em parte. Para entrar pela primeira vez é preciso internet. Depois, a aplicação abre sem rede com os dados que já carregou, e podes registar contactos, negócios e tarefas. Essas alterações ficam guardadas no aparelho e seguem para a equipa quando a ligação voltar.</p></details>
+      <details><summary>O WhatsApp envia as mensagens sozinho?</summary><p>Não. O CRM abre o WhatsApp do vendedor com a mensagem pronta e é ele que carrega em enviar. Assim a conversa continua a sair do número que o cliente já conhece.</p></details>
+      <details><summary>O orçamento serve como fatura?</summary><p>Não. O orçamento é um documento comercial sem valor fiscal e diz isso no rodapé. A fatura continua a ser emitida no vosso programa de faturação.</p></details>
       <details><summary>Posso trazer os contactos que já tenho?</summary><p>Podemos ajudar a importar a tua lista a partir de uma folha de cálculo. Fala-nos disso no pedido de demonstração.</p></details>
       <details><summary>Posso ligar o CRM ao meu site?</summary><p>Sim, através da API. Um formulário do vosso site pode criar contactos e negócios no CRM automaticamente.</p></details>
     </div>

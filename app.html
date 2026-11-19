@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Kamba CRM</title>
 <meta name="theme-color" content="#0d7a6e">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap">
@@ -137,10 +138,55 @@ tbody tr{cursor:pointer}tbody tr:hover{background:var(--accent-soft)}
 .who span{overflow-wrap:anywhere}
 #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:max(16px,env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:13px;z-index:40;max-width:90vw}
 #toast.bad{background:var(--bad);color:#fff}
+
+#net{position:sticky;top:0;z-index:15;background:var(--warn-soft);color:var(--warn);padding:8px 16px;font-size:13px;text-align:center;margin-inline:-16px}
+.fg div.w{grid-column:1/-1}
+.modal.wide{max-width:780px}
+.wa{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:3px 9px;cursor:pointer;display:inline-flex;gap:6px;align-items:center;font-size:12px;margin-top:6px;color:var(--accent);font-weight:500}
+.wa:hover{border-color:var(--accent)}
+.qh,.qi{display:grid;grid-template-columns:minmax(0,1fr) 72px 120px 36px;gap:6px;align-items:center}
+.qh{font-size:12px;color:var(--muted);margin-bottom:4px}
+.qi{margin-bottom:6px}
+.qi input{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--fg);min-width:0;width:100%}
+.qi .btn{padding:6px 0}
+#qtot{background:var(--accent-soft);border-radius:10px;padding:10px 14px;font-size:13px}
+.doc-ov{position:fixed;inset:0;background:#dfe6e5;z-index:50;overflow:auto;padding:12px}
+.doc-tools{max-width:794px;margin:0 auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.doc-tools .m{color:#566865}
+.doc{background:#fff;color:#111;max-width:794px;margin:12px auto;padding:44px;box-shadow:0 2px 24px rgba(0,0,0,.12);font:14px/1.5 Inter,system-ui,sans-serif}
+.doc h1{font:700 26px 'Space Grotesk',system-ui,sans-serif;margin:0;color:#0b4f48;letter-spacing:.02em}
+.doc .dh{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:28px}
+.doc .dh>div{min-width:0}
+.doc .dh .emp b{font-size:17px}
+.doc .meta{text-align:right}
+.doc .cli{margin-bottom:20px;padding:12px 14px;background:#f3f6f6;border-radius:8px}
+.doc h2{font:600 16px 'Space Grotesk',system-ui,sans-serif;margin:0 0 10px;color:#111}
+.doc .dt{overflow-x:auto}
+.doc table{width:100%;border-collapse:collapse;min-width:0}
+.doc th{background:#0b4f48;color:#fff;text-align:left;font-size:12px;padding:8px 10px;text-transform:none;letter-spacing:0}
+.doc td{padding:8px 10px;border-top:1px solid #dfe6e5;color:#111}
+.doc .r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.doc tbody tr{cursor:default}.doc tbody tr:hover{background:none}
+.doc .tt{margin:14px 0 0 auto;width:min(320px,100%)}
+.doc .tt div{display:flex;justify-content:space-between;padding:4px 10px;font-variant-numeric:tabular-nums}
+.doc .tt .g{background:#0b4f48;color:#fff;font-weight:700;border-radius:6px;margin-top:4px;padding:8px 10px}
+.doc .cond{margin-top:24px;font-size:13px;white-space:pre-wrap}
+.doc .fiscal{margin-top:28px;font-size:12px;color:#566865;border-top:1px solid #dfe6e5;padding-top:10px}
+.doc .aviso{background:#fbecd2;color:#7a4a00;padding:8px 12px;border-radius:8px;margin-bottom:16px;font-size:13px}
+@media (max-width:600px){.doc{padding:20px}.qh,.qi{grid-template-columns:minmax(0,1fr) 58px 92px 32px}}
+@media print{
+  body>*:not(#doc){display:none!important}
+  #doc{position:static!important;background:#fff!important;padding:0!important;overflow:visible!important}
+  .doc-tools,.no-print{display:none!important}
+  .doc{box-shadow:none!important;margin:0!important;padding:0!important;max-width:none!important}
+  .doc th,.doc .tt .g{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  @page{margin:16mm}
+}
 </style>
 
 </head>
 <body>
+<div id="net" role="status" hidden></div>
 <div id="auth"></div>
 <div class="app" id="app" hidden>
   <aside class="side">
@@ -151,6 +197,7 @@ tbody tr{cursor:pointer}tbody tr:hover{background:var(--accent-soft)}
   <main id="main"></main>
 </div>
 <div id="modal"></div>
+<div id="doc" class="doc-ov" hidden></div>
 <div id="toast" role="status" hidden></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 
@@ -199,41 +246,79 @@ function seed(){
 const SB_URL='https://dywzfjrisvgkujamueql.supabase.co';
 const SB_KEY='sb_publishable_Ji27m-a-nNTJ2XQbdDkIgA_0scQq98v';
 const sb=supabase.createClient(SB_URL,SB_KEY);
-let db={contacts:[],deals:[],tasks:[],team:[],pedidos:[]};
+let db={contacts:[],deals:[],tasks:[],team:[],pedidos:[],orcamentos:[],empresa:{}};
 let me={email:'',papel:''};
-const TBL={contacts:'contactos',deals:'negocios',tasks:'tarefas',team:'equipa'};
+const TBL={contacts:'contactos',deals:'negocios',tasks:'tarefas',team:'equipa',orcamentos:'orcamentos',empresa:'empresa'};
 const rp=o=>o.responsavel?{responsavel:o.responsavel}:{};
 const toRow={
-  contacts:o=>({id:o.id,nome:o.nome,empresa:o.empresa,cargo:o.cargo,email:o.email,tel:o.tel,cidade:o.cidade,estado:o.estado,notas:o.notas,...rp(o)}),
+  contacts:o=>({id:o.id,nome:o.nome,empresa:o.empresa,cargo:o.cargo,email:o.email,tel:o.tel,cidade:o.cidade,estado:o.estado,notas:o.notas,...(o.ultimo_contacto?{ultimo_contacto:o.ultimo_contacto}:{}),...rp(o)}),
   deals:o=>({id:o.id,titulo:o.titulo,contacto_id:o.contacto||null,valor:o.valor,etapa:o.etapa,fecho:o.fecho||null,notas:o.notas||'',...rp(o)}),
   tasks:o=>({id:o.id,titulo:o.titulo,contacto_id:o.contacto||null,data:o.data,feito:!!o.feito,...rp(o)}),
-  team:o=>({email:o.email,papel:o.papel})};
+  team:o=>({email:o.email,papel:o.papel}),
+  orcamentos:o=>({id:o.id,titulo:o.titulo,negocio_id:o.negocio_id||null,cliente:o.cliente||{},itens:o.itens||[],iva_pct:o.iva_pct,validade:o.validade||null,condicoes:o.condicoes||'',estado:o.estado||'rascunho',...rp(o)}),
+  empresa:o=>({id:1,nome:o.nome||'',nif:o.nif||'',endereco:o.endereco||'',telefone:o.telefone||'',email:o.email||'',iva_pct:o.iva_pct,validade_dias:o.validade_dias,condicoes:o.condicoes||''})};
 const fromRow={
   deals:r=>({id:r.id,titulo:r.titulo,contacto:r.contacto_id||'',valor:Number(r.valor),etapa:r.etapa,fecho:r.fecho||'',notas:r.notas||'',responsavel:r.responsavel||''}),
-  tasks:r=>({id:r.id,titulo:r.titulo,contacto:r.contacto_id||'',data:r.data,feito:r.feito,responsavel:r.responsavel||''})};
-let queue=[];
-const touch=(k,o)=>queue.push({op:'up',k,row:toRow[k](o)});
-const drop=(k,id)=>queue.push({op:'del',k,id});
+  tasks:r=>({id:r.id,titulo:r.titulo,contacto:r.contacto_id||'',data:r.data,feito:r.feito,responsavel:r.responsavel||''}),
+  orcamentos:r=>({...r,iva_pct:Number(r.iva_pct),subtotal:Number(r.subtotal),iva_valor:Number(r.iva_valor),total:Number(r.total)})};
+let queue=[];let offline=false;let saving=false;let snapT;
+const lsGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
+const lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
+const lsDel=k=>{try{localStorage.removeItem(k)}catch(e){}};
+const qKey=()=>'kamba-q-'+me.email, sKey=()=>'kamba-snap-'+me.email;
+const isNet=e=>!navigator.onLine||/fetch|network|load failed|timeout/i.test((e&&e.message)||'');
+function netBanner(){
+  const b=$('#net');if(!b)return;const n=queue.length;
+  b.hidden=!(offline||n);
+  b.textContent=(offline?'Sem ligação. A trabalhar com os dados guardados neste aparelho.':'A enviar alterações…')+(n?' '+n+(n===1?' alteração por enviar.':' alterações por enviar.'):'');
+}
+function persistQ(){queue.length?lsSet(qKey(),JSON.stringify(queue)):lsDel(qKey());netBanner()}
+function snap(){if(!me.email||!me.papel)return;lsSet(sKey(),JSON.stringify({db,me,ts:Date.now()}));lsSet('kamba-last',me.email)}
+const touch=(k,o)=>{queue.push({op:'up',k,row:toRow[k](o)});persistQ()};
+const drop=(k,id)=>{queue.push({op:'del',k,id});persistQ()};
 let toastT;
 function toast(msg,bad){const t=$('#toast');t.textContent=msg;t.className=bad?'bad':'';t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>{t.hidden=true},bad?6000:2500)}
 async function save(){
-  const q=queue;queue=[];
-  for(const j of q){
-    const r=j.op==='up'?await sb.from(TBL[j.k]).upsert(j.row):await sb.from(TBL[j.k]).delete().eq(j.k==='team'?'email':'id',j.id);
-    if(r.error){toast('Não foi possível guardar: '+r.error.message,true);await loadAll();render();return}
-  }
+  if(saving)return;saving=true;
+  try{
+    let quotes=false;
+    while(queue.length){
+      const j=queue[0];
+      const r=j.op==='up'?await sb.from(TBL[j.k]).upsert(j.row):await sb.from(TBL[j.k]).delete().eq(j.k==='team'?'email':'id',j.id);
+      if(r.error){
+        if(isNet(r.error)){offline=true;persistQ();toast('Sem ligação. As alterações ficam guardadas neste aparelho.');return}
+        queue=[];persistQ();toast('Não foi possível guardar: '+r.error.message,true);await loadAll();render();return;
+      }
+      if(j.k==='orcamentos')quotes=true;
+      queue.shift();persistQ();
+    }
+    if(offline){offline=false;toast('Ligação recuperada. Alterações enviadas.')}
+    netBanner();
+    if(quotes){await reloadQuotes();render()}
+    snap();
+  }finally{saving=false}
 }
+async function reloadQuotes(){const o=await sb.from('orcamentos').select('*').order('criado_em',{ascending:false});if(!o.error)db.orcamentos=o.data.map(fromRow.orcamentos)}
 async function loadAll(){
-  const [c,d,t,e]=await Promise.all([
+  const [c,d,t,e,o,em]=await Promise.all([
     sb.from('contactos').select('*').order('criado_em',{ascending:false}),
     sb.from('negocios').select('*').order('criado_em'),
     sb.from('tarefas').select('*').order('criado_em'),
-    sb.from('equipa').select('*').order('criado_em')]);
-  const err=c.error||d.error||t.error||e.error;
-  if(err){toast('Erro ao carregar dados: '+err.message,true);return false}
+    sb.from('equipa').select('*').order('criado_em'),
+    sb.from('orcamentos').select('*').order('criado_em',{ascending:false}),
+    sb.from('empresa').select('*').limit(1)]);
+  const err=c.error||d.error||t.error||e.error||o.error||em.error;
+  if(err){if(isNet(err)){offline=true;netBanner()}else toast('Erro ao carregar dados: '+err.message,true);return false}
   db.contacts=c.data;db.deals=d.data.map(fromRow.deals);db.tasks=t.data.map(fromRow.tasks);db.team=e.data;
+  db.orcamentos=o.data.map(fromRow.orcamentos);db.empresa=(em.data&&em.data[0])||{};
   if(me.papel==='admin'){const p=await sb.from('pedidos_demo').select('*').order('criado_em',{ascending:false}).limit(50);db.pedidos=p.error?[]:p.data}
+  offline=false;netBanner();snap();
   return true;
+}
+async function sync(){
+  if(saving||$('#app').hidden)return;
+  if(queue.length)await save();
+  if(!queue.length&&!$('#modal').innerHTML&&!$('#doc').innerHTML.includes('class="doc"')){if(await loadAll())render()}
 }
 async function loadSamples(){
   const s=seed(),m={};
@@ -245,7 +330,7 @@ async function loadSamples(){
   render();await save();
 }
 const ui={view:'dashboard',q:'',st:'',tf:'pend'};
-const VIEWS=[['dashboard','Painel','M3 12l9-9 9 9M5 10v10h14V10'],['contactos','Contactos','M16 11a4 4 0 10-8 0 4 4 0 008 0zM4 21c0-4 4-6 8-6s8 2 8 6'],['pipeline','Pipeline','M3 4h5v16H3zM10 4h5v10h-5zM17 4h4v6h-4z'],['tarefas','Tarefas','M9 11l3 3 8-8M4 12v8h14v-5'],['equipa','Equipa','M17 20v-1a4 4 0 00-4-4H7a4 4 0 00-4 4v1M10 11a4 4 0 100-8 4 4 0 000 8zM21 20v-1a4 4 0 00-3-3.9M16 3.1a4 4 0 010 7.8']];
+const VIEWS=[['dashboard','Painel','M3 12l9-9 9 9M5 10v10h14V10'],['contactos','Contactos','M16 11a4 4 0 10-8 0 4 4 0 008 0zM4 21c0-4 4-6 8-6s8 2 8 6'],['pipeline','Pipeline','M3 4h5v16H3zM10 4h5v10h-5zM17 4h4v6h-4z'],['orcamentos','Orçamentos','M7 3h8l4 4v14H7zM14 3v5h5M10 13h6M10 17h6'],['tarefas','Tarefas','M9 11l3 3 8-8M4 12v8h14v-5'],['equipa','Equipa','M17 20v-1a4 4 0 00-4-4H7a4 4 0 00-4 4v1M10 11a4 4 0 100-8 4 4 0 000 8zM21 20v-1a4 4 0 00-3-3.9M16 3.1a4 4 0 010 7.8']];
 const cname=id=>(db.contacts.find(c=>c.id===id)||{}).nome||'';
 const ccomp=id=>(db.contacts.find(c=>c.id===id)||{}).empresa||'';
 const stage=id=>STAGES.find(s=>s.id===id);
@@ -259,8 +344,9 @@ function renderNav(){
 function render(){
   renderNav();
   const v=ui.view;
-  $('#main').innerHTML=v==='dashboard'?vDash():v==='contactos'?vContacts():v==='pipeline'?vPipe():v==='equipa'?vTeam():vTasks();
+  $('#main').innerHTML=v==='dashboard'?vDash():v==='contactos'?vContacts():v==='pipeline'?vPipe():v==='orcamentos'?vQuotes():v==='equipa'?vTeam():vTasks();
   if(v==='contactos')listContacts();
+  if(!$('#app').hidden){clearTimeout(snapT);snapT=setTimeout(snap,400)}
 }
 function route(){const h=location.hash.slice(1);ui.view=VIEWS.some(v=>v[0]===h)?h:'dashboard';render()}
 addEventListener('hashchange',route);
@@ -271,8 +357,39 @@ function vTeam(){
   return`<div class="head"><div><h1>Equipa</h1><p>${adm?'Adiciona o email de quem pode entrar no CRM. A pessoa cria a conta com esse mesmo email.':'Pessoas com acesso ao CRM.'}</p></div>${adm?'<button class="btn pri" data-a="newm">Adicionar pessoa</button>':''}</div>
   <div class="card"><div class="list">${db.team.map(m=>{const self=m.email.toLowerCase()===me.email.toLowerCase();return`<div class="it"><span class="av">${esc(ini(m.email.split('@')[0]))}</span><div class="grow"><div class="t">${esc(m.email)}</div></div>${adm&&!self?`<select data-a="role" data-id="${esc(m.email)}" aria-label="Papel de ${esc(m.email)}">${opt(Object.keys(PAPEL),m.papel,k=>[k,PAPEL[k]])}</select><button class="btn bad" data-a="rmm" data-id="${esc(m.email)}">Remover</button>`:`<span class="chip ${m.papel==='admin'?'good':'mut'}">${PAPEL[m.papel]||m.papel}</span>`}</div>`}).join('')}</div></div>
   <div class="card" style="margin-top:12px"><h2>Permissões</h2><div class="m" style="font-size:13px;line-height:1.6"><b>Administrador:</b> vê e altera tudo e gere a equipa.<br><b>Gestor:</b> vê e altera tudo, incluindo eliminar registos.<br><b>Vendedor:</b> só vê e altera os contactos, negócios e tarefas de que é responsável. Não elimina registos.</div></div>
+  ${adm?`<div class="card" style="margin-top:12px"><h2>Dados da empresa</h2><p class="m" style="font-size:13px;margin:0 0 8px">Aparecem no topo dos orçamentos.</p>${db.empresa&&db.empresa.nome?`<div style="font-size:14px"><b>${esc(db.empresa.nome)}</b>${db.empresa.nif?' · NIF '+esc(db.empresa.nif):''}<div class="m">${esc([db.empresa.endereco,db.empresa.telefone,db.empresa.email].filter(Boolean).join(' · '))}</div><div class="m">IVA ${db.empresa.iva_pct}% · validade ${db.empresa.validade_dias} dias</div></div>`:'<div class="m">Ainda por preencher.</div>'}<div class="acts" style="justify-content:flex-start"><button class="btn" data-a="editemp">${db.empresa&&db.empresa.nome?'Editar':'Preencher'}</button></div></div>`:''}
   ${adm?`<div class="card" style="margin-top:12px"><h2>Pedidos de demonstração</h2>${db.pedidos.length?`<div class="list">${db.pedidos.map(p=>`<div class="it"><div class="grow"><div class="t">${esc(p.nome)}${p.empresa?' · '+esc(p.empresa):''}</div><div class="m">${esc(p.email)}${p.telefone?' · '+esc(p.telefone):''} · ${new Date(p.criado_em).toLocaleDateString('pt-PT')}</div>${p.mensagem?`<div class="m" style="margin-top:2px">${esc(p.mensagem)}</div>`:''}</div><button class="btn" data-a="rmp" data-id="${esc(p.id)}">Remover</button></div>`).join('')}</div>`:'<div class="m">Ainda não há pedidos. Os que chegarem pela página de vendas aparecem aqui.</div>'}</div>`:''}
   ${adm?`<div class="card" style="margin-top:12px"><h2>API</h2><p class="m" style="font-size:13px;margin:0 0 8px">Para ligar outros sistemas aos contactos, negócios e tarefas. Envia a chave secreta no cabeçalho <code>x-api-key</code>. Nunca a coloques no site.</p><div class="tw"><pre style="margin:0;padding:12px;font-size:12px;white-space:pre;overflow-x:auto">curl ${esc(api)}/contactos \\\n  -H "x-api-key: A_TUA_CHAVE"</pre></div><p class="m" style="font-size:12px;margin:8px 0 0">Recursos: contactos, negócios (negocios) e tarefas. Métodos: GET, POST, PATCH e DELETE. Documentação completa no ficheiro API.md do repositório.</p></div>`:''}`;
+}
+const WA_ICO='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 01-12.4 7.4L3 20.5l1.7-5.4A8.4 8.4 0 1121 11.5z"/></svg>';
+function waNum(t){let d=String(t||'').replace(/\D/g,'');if(d.startsWith('00'))d=d.slice(2);if(d.length===9&&d[0]==='9')d='244'+d;return d.length>=11&&d.length<=15?d:''}
+const WA_MODELOS=[
+ {id:'primeiro',nome:'Primeiro contacto',txt:'Olá {nome}, tudo bem? Sou {eu}{minha_empresa}. Gostava de perceber como podemos ajudar a sua empresa. Podemos falar um momento?'},
+ {id:'seguimento',nome:'Seguimento',txt:'Olá {nome}, passo para saber se já teve oportunidade de ver a nossa proposta{negocio}. Fico à disposição para qualquer dúvida.'},
+ {id:'proposta',nome:'Envio de proposta',txt:'Olá {nome}, segue a proposta{negocio}{valor}. Se estiver tudo certo, avançamos?'},
+ {id:'obrigado',nome:'Agradecimento',txt:'Olá {nome}, obrigado pela confiança! Se precisar de alguma coisa, é só dizer.'}];
+function waFill(txt,c,d){
+  const n=(me.email.split('@')[0]||'').split(/[._-]/)[0];
+  const eu=n?n[0].toUpperCase()+n.slice(1):'';
+  const emp=(db.empresa&&db.empresa.nome)||'';
+  return txt.replace('{nome}',(c.nome||'').split(/\s+/)[0]).replace('{eu}',eu).replace('{minha_empresa}',emp?', da '+emp:'')
+    .replace('{negocio}',d?' "'+d.titulo+'"':'').replace('{valor}',d&&d.valor?', no valor de '+kz(d.valor):'');
+}
+function openWA(cid,did){
+  const c=db.contacts.find(x=>x.id===cid);if(!c)return;
+  const d=db.deals.find(x=>x.id===did)||null,num=waNum(c.tel);
+  const def=d?(d.etapa==='prop'?'proposta':'seguimento'):'primeiro';
+  const link=t=>'https://wa.me/'+num+'?text='+encodeURIComponent(t);
+  const first=waFill(WA_MODELOS.find(m=>m.id===def).txt,c,d);
+  $('#modal').innerHTML=`<div class="ov" data-a="close"><div class="modal" id="wam"><h2>WhatsApp para ${esc(c.nome)}</h2>
+  ${num?'':'<div class="m" style="margin-bottom:10px;color:var(--bad)">Este contacto não tem um telefone válido. Edita o contacto e indica o número, por exemplo +244 923 000 000.</div>'}
+  <div class="fg"><label class="w">Mensagem pronta<select id="wa_m">${WA_MODELOS.map(m=>`<option value="${m.id}" ${m.id===def?'selected':''}>${m.nome}</option>`).join('')}</select></label>
+  <label class="w">Texto (podes editar)<textarea id="wa_t" style="min-height:110px">${esc(first)}</textarea></label></div>
+  <p class="m" style="margin-top:10px;font-size:12px">Abre o WhatsApp com a mensagem pronta. Só é enviada quando carregares em enviar no WhatsApp.</p>
+  <div class="acts"><button type="button" class="btn" data-a="close">Cancelar</button>${num?`<a class="btn pri" id="wa_go" data-a="wago" data-id="${c.id}" target="_blank" rel="noopener" href="${link(first)}">Abrir no WhatsApp</a>`:''}</div></div></div>`;
+  const t=$('#wa_t'),sl=$('#wa_m'),go=$('#wa_go');
+  sl.addEventListener('change',()=>{t.value=waFill(WA_MODELOS.find(m=>m.id===sl.value).txt,c,d);if(go)go.href=link(t.value)});
+  t.addEventListener('input',()=>{if(go)go.href=link(t.value)});
 }
 function saudacao(){
   const h=new Date().getHours(),n=(me.email.split('@')[0]||'').split(/[._-]/)[0];
@@ -309,12 +426,12 @@ function vContacts(){
 function listContacts(){
   const q=ui.q.toLowerCase();
   const r=db.contacts.filter(c=>(!ui.st||c.estado===ui.st)&&(!q||(c.nome+c.empresa+c.email).toLowerCase().includes(q)));
-  $('#clist').innerHTML=r.length?r.map(c=>`<tr data-a="editc" data-id="${c.id}"><td><div style="display:flex;gap:10px;align-items:center"><span class="av">${esc(ini(c.nome))}</span><div><div class="t">${esc(c.nome)}</div><div class="m">${esc(c.cargo)}</div></div></div></td><td>${esc(c.empresa)}</td><td><div>${esc(c.email)}</div><div class="m">${esc(c.tel)}</div></td><td>${esc(c.cidade)}</td><td><span class="chip ${c.estado==='Cliente'?'good':c.estado==='Lead'?'':'mut'}">${c.estado}</span></td>${isMgr()?`<td class="m">${esc((c.responsavel||'').split('@')[0])}</td>`:''}</tr>`).join(''):'<tr><td colspan="6"><div class="empty">Nenhum contacto encontrado.</div></td></tr>';
+  $('#clist').innerHTML=r.length?r.map(c=>`<tr data-a="editc" data-id="${c.id}"><td><div style="display:flex;gap:10px;align-items:center"><span class="av">${esc(ini(c.nome))}</span><div><div class="t">${esc(c.nome)}</div><div class="m">${esc(c.cargo)}</div></div></div></td><td>${esc(c.empresa)}</td><td><div>${esc(c.email)}</div><div class="m">${esc(c.tel)}</div>${waNum(c.tel)?`<button type="button" class="wa" data-a="wa" data-id="${c.id}" aria-label="Enviar WhatsApp a ${esc(c.nome)}">${WA_ICO}WhatsApp</button>`:''}</td><td>${esc(c.cidade)}</td><td><span class="chip ${c.estado==='Cliente'?'good':c.estado==='Lead'?'':'mut'}">${c.estado}</span><div class="m" style="margin-top:4px">${c.ultimo_contacto?'Contactado em '+fdate(c.ultimo_contacto.slice(0,10)):'Ainda não contactado'}</div></td>${isMgr()?`<td class="m">${esc((c.responsavel||'').split('@')[0])}</td>`:''}</tr>`).join(''):'<tr><td colspan="6"><div class="empty">Nenhum contacto encontrado.</div></td></tr>';
 }
 function vPipe(){
   const open=db.deals.filter(isOpen);
   return`<div class="head"><div><h1>Pipeline</h1><p>${open.length} negócios abertos. Arrasta os cartões entre colunas para mudar de etapa.</p></div><button class="btn pri" data-a="newd">Novo negócio</button></div>
-  <div class="board">${STAGES.map(s=>{const ds=db.deals.filter(d=>d.etapa===s.id);return`<div class="col" data-stage="${s.id}"><h3><span style="display:flex;align-items:center;gap:7px"><i style="width:9px;height:9px;border-radius:50%;background:${s.cor};display:inline-block"></i>${s.nome}</span><span class="tot">${ds.length} · ${kzc(ds.reduce((a,d)=>a+d.valor,0))}</span></h3>${ds.map(d=>`<div class="deal" draggable="true" data-a="editd" data-id="${d.id}"><div class="t">${esc(d.titulo)}</div><div class="m">${esc(ccomp(d.contacto)||'Sem empresa')}${d.contacto?' · '+esc(cname(d.contacto)):''}</div><div class="val">${kz(d.valor)}</div><div class="m">Fecho previsto ${fdate(d.fecho)}${isMgr()&&d.responsavel?' · '+esc(d.responsavel.split('@')[0]):''}</div><select class="mv" data-a="mv" data-id="${d.id}" aria-label="Mover para outra etapa">${opt(STAGES,d.etapa,x=>[x.id,'Mover para: '+x.nome])}</select></div>`).join('')}</div>`}).join('')}</div>`;
+  <div class="board">${STAGES.map(s=>{const ds=db.deals.filter(d=>d.etapa===s.id);return`<div class="col" data-stage="${s.id}"><h3><span style="display:flex;align-items:center;gap:7px"><i style="width:9px;height:9px;border-radius:50%;background:${s.cor};display:inline-block"></i>${s.nome}</span><span class="tot">${ds.length} · ${kzc(ds.reduce((a,d)=>a+d.valor,0))}</span></h3>${ds.map(d=>`<div class="deal" draggable="true" data-a="editd" data-id="${d.id}"><div class="t">${esc(d.titulo)}</div><div class="m">${esc(ccomp(d.contacto)||'Sem empresa')}${d.contacto?' · '+esc(cname(d.contacto)):''}</div><div class="val">${kz(d.valor)}</div><div class="m">Fecho previsto ${fdate(d.fecho)}${isMgr()&&d.responsavel?' · '+esc(d.responsavel.split('@')[0]):''}</div>${d.contacto&&waNum((db.contacts.find(c=>c.id===d.contacto)||{}).tel)?`<button type="button" class="wa" data-a="wa" data-id="${d.contacto}" data-deal="${d.id}" aria-label="Enviar WhatsApp sobre ${esc(d.titulo)}">${WA_ICO}WhatsApp</button>`:''}<select class="mv" data-a="mv" data-id="${d.id}" aria-label="Mover para outra etapa">${opt(STAGES,d.etapa,x=>[x.id,'Mover para: '+x.nome])}</select></div>`).join('')}</div>`}).join('')}</div>`;
 }
 function vTasks(){
   const f=ui.tf;
@@ -326,11 +443,81 @@ function vTasks(){
   <div class="card">${r.length?r.map(t=>`<div class="tk ${t.feito?'done':''}"><input type="checkbox" data-a="tick" data-id="${t.id}" ${t.feito?'checked':''} aria-label="Concluir tarefa"><div class="grow" data-a="editt" data-id="${t.id}" style="cursor:pointer"><div class="t">${esc(t.titulo)}</div><div class="m">${esc(cname(t.contacto))||'Sem contacto'}${ccomp(t.contacto)?' · '+esc(ccomp(t.contacto)):''}</div></div><span class="chip ${t.feito?'mut':overdue(t)?'bad':t.data===today()?'warn':'mut'}">${t.data===today()&&!t.feito?'Hoje':fdate(t.data)}</span></div>`).join(''):'<div class="empty">Nada por aqui.</div>'}</div>`;
 }
 
+/* orçamentos */
+const EST_Q={rascunho:{nome:'Rascunho',cls:'mut'},enviado:{nome:'Enviado',cls:''},aceite:{nome:'Aceite',cls:'good'},recusado:{nome:'Recusado',cls:'bad'}};
+const r2=n=>Math.round((+n||0)*100)/100;
+const kzd=n=>Number(n||0).toLocaleString('pt-PT',{minimumFractionDigits:0,maximumFractionDigits:2})+' Kz';
+const fnum=n=>Number(n||0).toLocaleString('pt-PT',{maximumFractionDigits:3});
+function calcQ(itens,iva){const sub=r2(itens.reduce((a,i)=>a+i.qtd*i.preco,0));const ivaV=r2(sub*(+iva||0)/100);return{subtotal:sub,iva_valor:ivaV,total:r2(sub+ivaV)}}
+function vQuotes(){
+  const L=db.orcamentos,E=db.empresa||{};
+  return`<div class="head"><div><h1>Orçamentos</h1><p>${L.length} orçamento${L.length===1?'':'s'}. Cria a partir de um negócio ou do zero e guarda em PDF.</p></div><button class="btn pri" data-a="newq">Novo orçamento</button></div>
+  ${E.nome?'':`<div class="card" style="margin-bottom:12px;font-size:13px">Os dados da tua empresa ainda não estão preenchidos, por isso não aparecem no orçamento. ${me.papel==='admin'?'Preenche-os na página <a href="#equipa">Equipa</a>.':'Pede ao administrador para os preencher na página Equipa.'}</div>`}
+  <div class="tw"><table><thead><tr><th>Número</th><th>Cliente</th><th>Título</th><th>Total</th><th>Estado</th><th>Data</th></tr></thead><tbody>${L.length?L.map(q=>{const st=EST_Q[q.estado]||EST_Q.rascunho;return`<tr data-a="editq" data-id="${q.id}"><td class="t">${esc(q.numero||'A atribuir')}</td><td>${esc((q.cliente||{}).nome||'—')}<div class="m">${esc((q.cliente||{}).empresa||'')}</div></td><td>${esc(q.titulo)}</td><td style="font-variant-numeric:tabular-nums;white-space:nowrap">${kzd(q.total)}</td><td><span class="chip ${st.cls}">${st.nome}</span></td><td class="m">${fdate((q.criado_em||'').slice(0,10))}</td></tr>`}).join(''):'<tr><td colspan="6"><div class="empty">Ainda não há orçamentos. Abre um negócio no Pipeline e carrega em "Criar orçamento deste negócio".</div></td></tr>'}</tbody></table></div>`;
+}
+const qrow=it=>`<div class="qi"><input class="q-d" placeholder="Descrição" value="${esc(it.descricao)}" aria-label="Descrição"><input class="q-q" type="number" min="0" step="any" value="${it.qtd}" aria-label="Quantidade"><input class="q-p" type="number" min="0" step="any" value="${it.preco}" aria-label="Preço unitário em kwanzas"><button type="button" class="btn" data-a="qdel" aria-label="Remover item">×</button></div>`;
+function readItems(){return[...document.querySelectorAll('#qitens .qi')].map(r=>({descricao:r.querySelector('.q-d').value.trim(),qtd:Math.round((+r.querySelector('.q-q').value||0)*1000)/1000,preco:r2(r.querySelector('.q-p').value)})).filter(i=>i.descricao&&i.qtd>0&&i.preco>=0)}
+function updTot(){const el=$('#qtot');if(!el)return;const t=calcQ(readItems(),+(($('#f_iva')||{}).value)||0);el.innerHTML=`Subtotal ${kzd(t.subtotal)} · IVA ${kzd(t.iva_valor)} · <b>Total ${kzd(t.total)}</b>`}
+function readQuoteForm(base){
+  const g=id=>(document.getElementById(id)||{value:''}).value.trim();
+  const c=db.contacts.find(x=>x.id===g('f_cli'));
+  const iva=Math.min(100,Math.max(0,+g('f_iva')||0)),itens=readItems();
+  return{...base,titulo:g('f_tit'),cliente:c?{contacto_id:c.id,nome:c.nome,empresa:c.empresa,email:c.email,tel:c.tel}:{},itens,iva_pct:iva,validade:g('f_val')||null,condicoes:document.getElementById('f_cond')?document.getElementById('f_cond').value.trim():'',estado:g('f_est')||'rascunho',...calcQ(itens,iva)};
+}
+function editQuote(id,dealId){
+  const ex=db.orcamentos.find(x=>x.id===id)||null;
+  const deal=db.deals.find(x=>x.id===(ex?ex.negocio_id:dealId))||null;
+  const cont=deal?db.contacts.find(c=>c.id===deal.contacto):null,E=db.empresa||{};
+  const q=ex||{titulo:deal?deal.titulo:'',negocio_id:deal?deal.id:null,cliente:cont?{contacto_id:cont.id}:{},
+    itens:deal?[{descricao:deal.titulo,qtd:1,preco:deal.valor||0}]:[{descricao:'',qtd:1,preco:0}],
+    iva_pct:E.iva_pct==null?14:E.iva_pct,validade:off(E.validade_dias||15),condicoes:E.condicoes||'',estado:'rascunho'};
+  modal(ex?'Orçamento '+(ex.numero||''):'Novo orçamento',
+    inp('Título','f_tit',q.titulo,'text','w')+sel('Cliente','f_cli',cOpts((q.cliente||{}).contacto_id),'w')+
+    `<div class="w"><div class="qh"><span>Descrição</span><span>Qtd.</span><span>Preço unit. (Kz)</span><span></span></div><div id="qitens">${q.itens.map(qrow).join('')}</div><button type="button" class="btn" data-a="qadd" style="margin-top:4px">Acrescentar item</button></div>`+
+    inp('IVA (%)','f_iva',q.iva_pct,'number')+inp('Válido até','f_val',q.validade||'','date')+
+    sel('Estado','f_est',opt(Object.keys(EST_Q),q.estado,k=>[k,EST_Q[k].nome]),'w')+
+    `<label class="w">Condições<textarea id="f_cond">${esc(q.condicoes)}</textarea></label><div class="w" id="qtot"></div><div class="w"><button type="button" class="btn" data-a="qprint">Ver e guardar em PDF</button></div>`,
+    g=>{
+      if(reqName(g,'f_tit','Indica o título')===false)return false;
+      if(!g('f_cli')){toast('Escolhe o cliente.',true);return false}
+      const o=readQuoteForm({negocio_id:q.negocio_id||null});
+      if(!o.itens.length){toast('Acrescenta pelo menos um item com descrição e quantidade.',true);return false}
+      let obj;if(ex){obj=Object.assign(ex,o)}else{obj={id:uid(),numero:'',...o};db.orcamentos.unshift(obj)}
+      touch('orcamentos',obj)},
+    ex&&isMgr()&&(()=>{drop('orcamentos',id);db.orcamentos=db.orcamentos.filter(x=>x.id!==id)}),true);
+  const f=$('#mf');f.addEventListener('input',updTot);updTot();
+  f.dataset.qid=ex?ex.id:'';f._base=ex||{negocio_id:q.negocio_id||null};
+}
+function showDoc(q){
+  const E=db.empresa||{},cl=q.cliente||{};
+  const rows=q.itens.map(it=>`<tr><td>${esc(it.descricao)}</td><td class="r">${fnum(it.qtd)}</td><td class="r">${kzd(it.preco)}</td><td class="r">${kzd(it.qtd*it.preco)}</td></tr>`).join('');
+  const dt=(q.criado_em||new Date().toISOString()).slice(0,10);
+  $('#doc').innerHTML=`<div class="doc-tools"><button class="btn pri" data-a="docprint">Imprimir ou guardar em PDF</button><button class="btn" data-a="docclose">Fechar</button><span class="m">Na janela de impressão, escolhe "Guardar como PDF".</span></div>
+  <article class="doc">
+   ${E.nome?'':'<div class="aviso no-print">Os dados da tua empresa não estão preenchidos. O administrador pode preenchê-los na página Equipa.</div>'}
+   <div class="dh"><div class="emp"><b>${esc(E.nome||'A tua empresa')}</b>${E.nif?`<div>NIF: ${esc(E.nif)}</div>`:''}${E.endereco?`<div>${esc(E.endereco)}</div>`:''}${E.telefone||E.email?`<div>${esc([E.telefone,E.email].filter(Boolean).join(' · '))}</div>`:''}</div>
+   <div class="meta"><h1>ORÇAMENTO</h1><div><b>${esc(q.numero||'Nº a atribuir ao guardar')}</b></div><div>Data: ${fdate(dt)}</div>${q.validade?`<div>Válido até: ${fdate(q.validade)}</div>`:''}</div></div>
+   <div class="cli"><b>${esc(cl.nome||'Cliente')}</b>${cl.empresa?`<div>${esc(cl.empresa)}</div>`:''}${cl.email||cl.tel?`<div>${esc([cl.tel,cl.email].filter(Boolean).join(' · '))}</div>`:''}</div>
+   <h2>${esc(q.titulo)}</h2>
+   <div class="dt"><table><thead><tr><th>Descrição</th><th class="r">Qtd.</th><th class="r">Preço unit.</th><th class="r">Total</th></tr></thead><tbody>${rows}</tbody></table></div>
+   <div class="tt"><div><span>Subtotal</span><span>${kzd(q.subtotal)}</span></div><div><span>IVA (${fnum(q.iva_pct)}%)</span><span>${kzd(q.iva_valor)}</span></div><div class="g"><span>Total</span><span>${kzd(q.total)}</span></div></div>
+   ${q.condicoes?`<div class="cond"><b>Condições</b><br>${esc(q.condicoes)}</div>`:''}
+   <div class="fiscal">Orçamento sem valor fiscal. Não substitui a fatura.</div>
+  </article>`;
+  $('#doc').hidden=false;$('#doc').scrollTop=0;
+}
+function editEmpresa(){
+  const E=db.empresa||{};
+  modal('Dados da empresa',inp('Nome da empresa','e_nome',E.nome,'text','w')+inp('NIF','e_nif',E.nif)+inp('Telefone','e_tel',E.telefone,'tel')+inp('Endereço','e_end',E.endereco,'text','w')+inp('Email','e_mail',E.email,'email','w')+inp('IVA por defeito (%)','e_iva',E.iva_pct==null?14:E.iva_pct,'number')+inp('Validade do orçamento (dias)','e_val',E.validade_dias||15,'number')+`<label class="w">Condições por defeito<textarea id="e_cond">${esc(E.condicoes||'')}</textarea></label>`,
+    g=>{const o={nome:g('e_nome'),nif:g('e_nif'),telefone:g('e_tel'),endereco:g('e_end'),email:g('e_mail'),iva_pct:Math.min(100,Math.max(0,+g('e_iva')||0)),validade_dias:Math.min(365,Math.max(1,Math.round(+g('e_val')||15))),condicoes:g('e_cond')};
+      db.empresa=Object.assign({},E,o);touch('empresa',db.empresa)});
+}
+
 /* modais */
 const opt=(arr,v,fn=x=>[x,x])=>arr.map(x=>{const[a,b]=fn(x);return`<option value="${esc(a)}" ${a===v?'selected':''}>${esc(b)}</option>`}).join('');
 const cOpts=v=>`<option value="">Sem contacto</option>`+opt(db.contacts,v,c=>[c.id,c.nome+' ('+c.empresa+')']);
-function modal(title,body,onSave,onDel){
-  $('#modal').innerHTML=`<div class="ov" data-a="close"><form class="modal" id="mf" novalidate><h2>${title}</h2><div class="fg">${body}</div><div class="acts">${onDel?'<button type="button" class="btn bad sp" id="del">Eliminar</button>':''}<button type="button" class="btn" data-a="close">Cancelar</button><button class="btn pri">Guardar</button></div></form></div>`;
+function modal(title,body,onSave,onDel,wide){
+  $('#modal').innerHTML=`<div class="ov" data-a="close"><form class="modal${wide?' wide':''}" id="mf" novalidate><h2>${title}</h2><div class="fg">${body}</div><div class="acts">${onDel?'<button type="button" class="btn bad sp" id="del">Eliminar</button>':''}<button type="button" class="btn" data-a="close">Cancelar</button><button class="btn pri">Guardar</button></div></form></div>`;
   const f=$('#mf');
   f.addEventListener('submit',e=>{e.preventDefault();const g=id=>f.querySelector('#'+id).value.trim();if(onSave(g)!==false){closeM();save();render()}});
   if(onDel){const b=$('#del');b.addEventListener('click',()=>{if(b.dataset.s){onDel();closeM();save();render()}else{b.dataset.s=1;b.textContent='Confirmar eliminação'}})}
@@ -348,7 +535,7 @@ function editContact(id){
   const c=db.contacts.find(x=>x.id===id)||{estado:'Lead'};
   const rel=id?`<div class="rel w" style="grid-column:1/-1">${db.deals.filter(d=>d.contacto===id).length} negócio(s) e ${db.tasks.filter(t=>t.contacto===id).length} tarefa(s) associados.</div>`:'';
   modal(id?'Editar contacto':'Novo contacto',
-    inp('Nome','f_nome',c.nome,'text','w')+inp('Empresa','f_emp',c.empresa)+inp('Cargo','f_cargo',c.cargo)+inp('Email','f_email',c.email,'email')+inp('Telefone','f_tel',c.tel,'tel')+inp('Cidade','f_cid',c.cidade)+sel('Estado','f_est',opt(STATUS,c.estado))+`<label class="w">Notas<textarea id="f_not">${esc(c.notas)}</textarea></label>`+respSel(c.responsavel)+rel,
+    inp('Nome','f_nome',c.nome,'text','w')+inp('Empresa','f_emp',c.empresa)+inp('Cargo','f_cargo',c.cargo)+inp('Email','f_email',c.email,'email')+inp('Telefone','f_tel',c.tel,'tel')+inp('Cidade','f_cid',c.cidade)+sel('Estado','f_est',opt(STATUS,c.estado))+`<label class="w">Notas<textarea id="f_not">${esc(c.notas)}</textarea></label>`+respSel(c.responsavel)+(id&&waNum(c.tel)?`<div class="w"><button type="button" class="wa" data-a="wa" data-id="${id}">${WA_ICO}Enviar WhatsApp</button></div>`:'')+rel,
     g=>{if(reqName(g,'f_nome','Indica o nome')===false)return false;
       const o={nome:g('f_nome'),empresa:g('f_emp'),cargo:g('f_cargo'),email:g('f_email'),tel:g('f_tel'),cidade:g('f_cid'),estado:g('f_est'),notas:g('f_not'),...(isMgr()?{responsavel:g('f_resp')}:{})};
       let obj;if(id){obj=Object.assign(db.contacts.find(x=>x.id===id),o)}else{obj={id:uid(),...o};db.contacts.unshift(obj)}touch('contacts',obj)},
@@ -357,7 +544,7 @@ function editContact(id){
 function editDeal(id,stg){
   const d=db.deals.find(x=>x.id===id)||{etapa:stg||'novo',valor:'',fecho:off(30)};
   modal(id?'Editar negócio':'Novo negócio',
-    inp('Título','f_tit',d.titulo,'text','w')+inp('Valor (Kz)','f_val',d.valor,'number')+sel('Etapa','f_et',opt(STAGES,d.etapa,s=>[s.id,s.nome]))+sel('Contacto','f_con',cOpts(d.contacto))+inp('Fecho previsto','f_fe',d.fecho,'date')+`<label class="w">Notas<textarea id="f_not">${esc(d.notas)}</textarea></label>`+respSel(d.responsavel),
+    inp('Título','f_tit',d.titulo,'text','w')+inp('Valor (Kz)','f_val',d.valor,'number')+sel('Etapa','f_et',opt(STAGES,d.etapa,s=>[s.id,s.nome]))+sel('Contacto','f_con',cOpts(d.contacto))+inp('Fecho previsto','f_fe',d.fecho,'date')+`<label class="w">Notas<textarea id="f_not">${esc(d.notas)}</textarea></label>`+respSel(d.responsavel)+(id?`<div class="w"><button type="button" class="btn" data-a="qfromdeal" data-id="${id}">Criar orçamento deste negócio</button></div>`:''),
     g=>{if(reqName(g,'f_tit','Indica o título')===false)return false;
       const o={titulo:g('f_tit'),valor:Math.max(0,+g('f_val')||0),etapa:g('f_et'),contacto:g('f_con'),fecho:g('f_fe'),notas:g('f_not'),...(isMgr()?{responsavel:g('f_resp')}:{})};
       let obj;if(id){obj=Object.assign(db.deals.find(x=>x.id===id),o)}else{obj={id:uid(),...o};db.deals.push(obj)}touch('deals',obj)},
@@ -386,12 +573,21 @@ document.addEventListener('click',e=>{
   if(a==='close'){if(e.target===el||el.tagName==='BUTTON')closeM();return}
   if(a==='tick')return;
   if(a==='tf'){ui.tf=el.dataset.k;render();return}
-  if(a==='out'){sb.auth.signOut();return}
+  if(a==='out'){(async()=>{if(queue.length)await save();if(queue.length){toast('Há alterações por enviar. Liga-te à internet antes de sair.',true);return}lsDel(sKey());lsDel('kamba-last');await sb.auth.signOut()})();return}
+  if(a==='wa'){openWA(id,el.dataset.deal);return}
+  if(a==='wago'){const c=db.contacts.find(x=>x.id===id);if(c){c.ultimo_contacto=new Date().toISOString();touch('contacts',c);save()}setTimeout(()=>{closeM();render()},150);return}
+  if(a==='qadd'){$('#qitens').insertAdjacentHTML('beforeend',qrow({descricao:'',qtd:1,preco:0}));updTot();return}
+  if(a==='qdel'){el.closest('.qi').remove();updTot();return}
+  if(a==='qprint'){const f=$('#mf');showDoc(readQuoteForm(f._base||{}));return}
+  if(a==='docprint'){window.print();return}
+  if(a==='docclose'){$('#doc').hidden=true;$('#doc').innerHTML='';return}
+  if(a==='qfromdeal'){closeM();editQuote(null,id);return}
+  if(a==='editemp'){editEmpresa();return}
   if(a==='samples'){loadSamples();return}
   if(a==='rmm'){if(!el.dataset.s){el.dataset.s=1;el.textContent='Confirmar';return}db.team=db.team.filter(m=>m.email!==id);drop('team',id);save();render();return}
   if(a==='newm'){editMember();return}
   if(a==='rmp'){if(!el.dataset.s){el.dataset.s=1;el.textContent='Confirmar';return}sb.from('pedidos_demo').delete().eq('id',id).then(r=>{if(r.error)toast('Não foi possível remover',true);else{db.pedidos=db.pedidos.filter(x=>x.id!==id);render()}});return}
-  ({newc:()=>editContact(),editc:()=>editContact(id),newd:()=>editDeal(),editd:()=>editDeal(id),newt:()=>editTask(),editt:()=>editTask(id)})[a]?.();
+  ({newq:()=>editQuote(),editq:()=>editQuote(id),newc:()=>editContact(),editc:()=>editContact(id),newd:()=>editDeal(),editd:()=>editDeal(id),newt:()=>editTask(),editt:()=>editTask(id)})[a]?.();
 });
 document.addEventListener('change',e=>{
   const el=e.target;
@@ -401,7 +597,7 @@ document.addEventListener('change',e=>{
   if(el.id==='st'){ui.st=el.value;listContacts()}
 });
 document.addEventListener('input',e=>{if(e.target.id==='q'){ui.q=e.target.value;listContacts()}});
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeM()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('#doc').hidden){$('#doc').hidden=true;$('#doc').innerHTML=''}else closeM()}});
 let dragId=null;
 document.addEventListener('dragstart',e=>{const d=e.target.closest('.deal');if(d){dragId=d.dataset.id;e.dataTransfer.effectAllowed='move';try{e.dataTransfer.setData('text/plain',dragId)}catch(_){}}});
 document.addEventListener('dragover',e=>{const c=e.target.closest('.col');if(c&&dragId){e.preventDefault();if(e.dataTransfer)e.dataTransfer.dropEffect='move';document.querySelectorAll('.col.over').forEach(x=>x!==c&&x.classList.remove('over'));c.classList.add('over')}});
@@ -422,15 +618,27 @@ function showNoAccess(){
   $('#app').hidden=true;$('#auth').hidden=false;
   $('#auth').innerHTML=`<div class="authbox card"><h1 style="font-size:22px">Sem acesso</h1><p class="m" style="font-size:14px">A conta ${esc(me.email)} ainda não foi autorizada. Pede ao administrador para adicionar este email na página Equipa e volta a entrar.</p><button class="btn" data-a="out">Sair</button></div>`;
 }
+function useSnapshot(){
+  let sn=null;try{sn=JSON.parse(lsGet(sKey())||'null')}catch(e){}
+  if(!sn){showAuth('login','Sem ligação e sem dados guardados neste aparelho. Liga-te à internet para entrar.');return false}
+  db=Object.assign({contacts:[],deals:[],tasks:[],team:[],pedidos:[],orcamentos:[],empresa:{}},sn.db);me.papel=sn.me.papel;offline=true;return true;
+}
 async function enter(session){
   me.email=session.user.email;
-  const{data,error}=await sb.rpc('reclamar_conta');
-  if(error){showAuth('login','Erro ao verificar o acesso: '+error.message);return}
-  if(data==='sem_acesso'||data==='sem_sessao'){showNoAccess();return}
-  me.papel=data;
-  if(!await loadAll())return;
+  let papel=null;
+  if(navigator.onLine){
+    const{data,error}=await sb.rpc('reclamar_conta');
+    if(error&&!isNet(error)){showAuth('login','Erro ao verificar o acesso: '+error.message);return}
+    if(!error){if(data==='sem_acesso'||data==='sem_sessao'){showNoAccess();return}papel=data}
+  }
+  try{queue=JSON.parse(lsGet(qKey())||'[]')}catch(e){queue=[]}
+  if(papel){
+    me.papel=papel;
+    if(queue.length)await save();
+    if(!await loadAll()&&!useSnapshot())return;
+  }else if(!useSnapshot())return;
   $('#who').textContent=me.email+' ('+(PAPEL[me.papel]||me.papel).toLowerCase()+')';
-  $('#auth').hidden=true;$('#app').hidden=false;route();
+  $('#auth').hidden=true;$('#app').hidden=false;netBanner();route();
 }
 document.addEventListener('click',e=>{const b=e.target.closest('[data-a="authmode"]');if(b)showAuth(b.dataset.m)});
 document.addEventListener('submit',async e=>{
@@ -449,14 +657,18 @@ document.addEventListener('submit',async e=>{
     enter(data.session);
   }
 });
-sb.auth.onAuthStateChange((ev)=>{if(ev==='SIGNED_OUT'){db={contacts:[],deals:[],tasks:[],team:[],pedidos:[]};showAuth()}});
-document.addEventListener('visibilitychange',async()=>{
-  if(document.visibilityState==='visible'&&!$('#app').hidden&&!$('#modal').innerHTML&&!queue.length){if(await loadAll())render()}
-});
+sb.auth.onAuthStateChange((ev)=>{if(ev==='SIGNED_OUT'){db={contacts:[],deals:[],tasks:[],team:[],pedidos:[],orcamentos:[],empresa:{}};queue=[];offline=false;netBanner();showAuth()}});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')sync()});
+addEventListener('online',()=>{sync()});
+addEventListener('offline',()=>{offline=true;netBanner()});
+setInterval(()=>{if(queue.length&&navigator.onLine)sync()},30000);
 (async()=>{
-  const{data}=await sb.auth.getSession();
-  if(data.session)enter(data.session);else showAuth();
+  let ses=null;try{ses=(await sb.auth.getSession()).data.session}catch(e){}
+  if(ses)enter(ses);
+  else if(!navigator.onLine&&lsGet('kamba-last'))enter({user:{email:lsGet('kamba-last')}});
+  else showAuth();
 })();
+if('serviceWorker' in navigator&&/^https?:/.test(location.protocol))addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})});
 </script>
 
 </body>
