@@ -133,6 +133,7 @@ tbody tr{cursor:pointer}tbody tr:hover{background:var(--accent-soft)}
 .authbox input{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:14px;width:100%}
 .authbox .msg{font-size:13px;padding:10px 12px;border-radius:8px;background:var(--warn-soft);color:var(--warn)}
 .authbox .msg.ok{background:var(--good-soft);color:var(--good)}
+.pbar{background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px}.pbar.bad{background:var(--bad-soft);color:var(--bad)}.pbar a{color:inherit;font-weight:600}
 .link{background:none;border:0;color:var(--accent);cursor:pointer;padding:0;font-weight:500}
 .who{display:flex;flex-direction:column;gap:8px;font-size:12px;color:var(--muted)}
 .who span{overflow-wrap:anywhere}
@@ -245,11 +246,28 @@ function seed(){
 }
 const SB_URL='https://dywzfjrisvgkujamueql.supabase.co';
 const SB_KEY='sb_publishable_Ji27m-a-nNTJ2XQbdDkIgA_0scQq98v';
+const RECOVERY=/type=recovery/.test(location.hash);
 const sb=supabase.createClient(SB_URL,SB_KEY);
-const DB0=()=>({contacts:[],deals:[],tasks:[],team:[],pedidos:[],orcamentos:[],empresa:{},empresas:[],chaves:[]});
+const DB0=()=>({contacts:[],deals:[],tasks:[],team:[],pedidos:[],orcamentos:[],empresa:{},empresas:[],chaves:[],pedPlano:[],pend:[],instrucoes:''});
 let db=DB0();
 let me={email:'',papel:'',plataforma:false};
 const PLANOS={teste:'Teste grátis',essencial:'Essencial',equipa:'Equipa',empresa:'Empresa'};
+const PRECOS={essencial:'15 000 Kz por mês',equipa:'35 000 Kz por mês',empresa:'Sob consulta'};
+const DAY=864e5;
+function planoInfo(){
+  const E=db.empresa||{};if(!E.id)return{ativa:true};
+  const fim=E.plano==='teste'?new Date(new Date(E.criado_em).getTime()+14*DAY):(E.plano_ate?new Date(E.plano_ate):null);
+  if(!fim||isNaN(fim.getTime()))return{ativa:true,fim:null,teste:false};
+  return{ativa:fim.getTime()>Date.now(),fim,dias:Math.ceil((fim.getTime()-Date.now())/DAY),teste:E.plano==='teste'};
+}
+const fmtD=d=>new Date(d).toLocaleDateString('pt-PT');
+function planBanner(){
+  const i=planoInfo();if(i.ativa&&(i.fim===null||i.dias>5))return'';
+  const link=me.papel==='admin'?' <a href="#equipa">Escolher um plano</a>':' Fala com o administrador da tua empresa.';
+  if(!i.ativa)return`<div class="pbar bad" role="alert">${i.teste?'O teu teste grátis terminou.':'O teu plano terminou.'} Podes consultar os dados, mas não alterar.${link}</div>`;
+  return`<div class="pbar" role="status">${i.teste?'Teste grátis':'O teu plano'}: ${i.dias===1?'falta 1 dia':'faltam '+i.dias+' dias'} (até ${fmtD(i.fim)}).${link}</div>`;
+}
+function bloqueado(){if(planoInfo().ativa)return false;toast('O período terminou. Só podes consultar os dados. Escolhe um plano na página Equipa.',true);loadAll().then(ok=>ok&&render());return true}
 const TBL={contacts:'contactos',deals:'negocios',tasks:'tarefas',team:'equipa',orcamentos:'orcamentos',empresa:'empresas'};
 const rp=o=>o.responsavel?{responsavel:o.responsavel}:{};
 const toRow={
@@ -276,8 +294,8 @@ function netBanner(){
 }
 function persistQ(){queue.length?lsSet(qKey(),JSON.stringify(queue)):lsDel(qKey());netBanner()}
 function snap(){if(!me.email||!me.papel)return;lsSet(sKey(),JSON.stringify({db,me,ts:Date.now()}));lsSet('kamba-last',me.email)}
-const touch=(k,o)=>{queue.push({op:'up',k,row:toRow[k](o),...(k==='empresa'?{id:o.id}:{})});persistQ()};
-const drop=(k,id)=>{queue.push({op:'del',k,id});persistQ()};
+const touch=(k,o)=>{if(k!=='empresa'&&bloqueado())return;queue.push({op:'up',k,row:toRow[k](o),...(k==='empresa'?{id:o.id}:{})});persistQ()};
+const drop=(k,id)=>{if(bloqueado())return;queue.push({op:'del',k,id});persistQ()};
 let toastT;
 function toast(msg,bad){const t=$('#toast');t.textContent=msg;t.className=bad?'bad':'';t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>{t.hidden=true},bad?6000:2500)}
 async function save(){
@@ -285,14 +303,15 @@ async function save(){
   try{
     let quotes=false;
     while(queue.length){
-      const j=queue[0];
-      const r=j.op==='up'?(j.k==='team'?await sb.from('equipa').update({papel:j.row.papel}).eq('email',j.row.email):j.k==='empresa'?await sb.from('empresas').update(j.row).eq('id',j.id):await sb.from(TBL[j.k]).upsert(j.row)):await sb.from(TBL[j.k]).delete().eq(j.k==='team'?'email':'id',j.id);
+      const j=queue[0];let n=1;
+      if(j.op==='up'&&(j.k==='contacts'||j.k==='deals'||j.k==='tasks')){while(n<200&&queue[n]&&queue[n].op==='up'&&queue[n].k===j.k)n++}
+      const r=n>1?await sb.from(TBL[j.k]).upsert([...new Map(queue.slice(0,n).map(x=>[x.row.id,x.row])).values()]):j.op==='up'?(j.k==='team'?await sb.from('equipa').update({papel:j.row.papel}).eq('email',j.row.email):j.k==='empresa'?await sb.from('empresas').update(j.row).eq('id',j.id):await sb.from(TBL[j.k]).upsert(j.row)):await sb.from(TBL[j.k]).delete().eq(j.k==='team'?'email':'id',j.id);
       if(r.error){
         if(isNet(r.error)){offline=true;persistQ();toast('Sem ligação. As alterações ficam guardadas neste aparelho.');return}
         queue=[];persistQ();toast('Não foi possível guardar: '+r.error.message,true);await loadAll();render();return;
       }
       if(j.k==='orcamentos')quotes=true;
-      queue.shift();persistQ();
+      queue.splice(0,n);persistQ();
     }
     if(offline){offline=false;toast('Ligação recuperada. Alterações enviadas.')}
     netBanner();
@@ -313,10 +332,12 @@ async function loadAll(){
   if(err){if(isNet(err)){offline=true;netBanner()}else toast('Erro ao carregar dados: '+err.message,true);return false}
   db.contacts=c.data;db.deals=d.data.map(fromRow.deals);db.tasks=t.data.map(fromRow.tasks);db.team=e.data;
   db.orcamentos=o.data.map(fromRow.orcamentos);db.empresa=(em.data&&em.data[0])||{};
-  db.pedidos=[];db.empresas=[];db.chaves=[];
+  db.pedidos=[];db.empresas=[];db.chaves=[];db.pedPlano=[];db.pend=[];
+  {const cf=await sb.from('plataforma_config').select('instrucoes_pagamento').limit(1);db.instrucoes=(!cf.error&&cf.data&&cf.data[0]&&cf.data[0].instrucoes_pagamento)||''}
+  if(me.papel==='admin'){const pp=await sb.from('pedidos_plano').select('*').order('criado_em',{ascending:false}).limit(20);db.pedPlano=pp.error?[]:pp.data.filter(x=>x.empresa_id===db.empresa.id)}
   if(me.plataforma){
-    const [p,r]=await Promise.all([sb.from('pedidos_demo').select('*').order('criado_em',{ascending:false}).limit(50),sb.rpc('resumo_empresas')]);
-    db.pedidos=p.error?[]:p.data;db.empresas=r.error?[]:r.data;
+    const [p,r,q]=await Promise.all([sb.from('pedidos_demo').select('*').order('criado_em',{ascending:false}).limit(50),sb.rpc('resumo_empresas'),sb.rpc('pedidos_plano_pendentes')]);
+    db.pedidos=(!p.error&&p.data)||[];db.empresas=(!r.error&&r.data)||[];db.pend=(!q.error&&q.data)||[];
   }
   if(me.papel==='admin'&&db.empresa.plano==='empresa'){const k=await sb.from('api_chaves').select('id,nome,prefixo,criado_em').order('criado_em',{ascending:false});db.chaves=k.error?[]:k.data}
   offline=false;netBanner();snap();
@@ -351,12 +372,94 @@ function renderNav(){
 function render(){
   renderNav();
   const v=ui.view;
-  $('#main').innerHTML=v==='dashboard'?vDash():v==='contactos'?vContacts():v==='pipeline'?vPipe():v==='orcamentos'?vQuotes():v==='equipa'?vTeam():vTasks();
+  $('#main').innerHTML=planBanner()+(v==='dashboard'?vDash():v==='contactos'?vContacts():v==='pipeline'?vPipe():v==='orcamentos'?vQuotes():v==='equipa'?vTeam():vTasks());
   if(v==='contactos')listContacts();
   if(!$('#app').hidden){clearTimeout(snapT);snapT=setTimeout(snap,400)}
 }
 function route(){const h=location.hash.slice(1);ui.view=VIEWS.some(v=>v[0]===h)?h:'dashboard';render()}
 addEventListener('hashchange',route);
+
+function planoCard(){
+  const E=db.empresa||{},i=planoInfo();
+  const est={pendente:['warn','Em análise'],aprovado:['good','Aprovado'],recusado:['bad','Recusado']};
+  return`<div class="card" style="margin-top:12px"><h2>Plano e pagamento</h2>
+  <div style="font-size:14px"><span class="chip ${i.ativa?'good':'bad'}">${esc(PLANOS[E.plano]||E.plano||'')}</span> ${i.fim?(i.ativa?'ativo até '+fmtD(i.fim):'terminou em '+fmtD(i.fim)):'sem data de fim'}</div>
+  <div class="m" style="font-size:13px;margin-top:8px;line-height:1.6">Essencial: 15 000 Kz por mês, até 3 utilizadores.<br>Equipa: 35 000 Kz por mês, até 10 utilizadores.<br>Empresa: sob consulta, mais utilizadores e API.</div>
+  ${db.instrucoes?`<div class="card" style="margin-top:10px;font-size:13px;white-space:pre-wrap">${esc(db.instrucoes)}</div>`:''}
+  ${db.pedPlano.length?`<div class="list" style="margin-top:8px">${db.pedPlano.slice(0,5).map(x=>`<div class="it"><div class="grow"><div class="t">${esc(PLANOS[x.plano]||x.plano)} · ${esc(x.metodo||'')}</div><div class="m">${fmtD(x.criado_em)} · ${esc(x.referencia||'')}</div></div><span class="chip ${est[x.estado][0]}">${est[x.estado][1]}</span></div>`).join('')}</div>`:''}
+  <div class="acts" style="justify-content:flex-start"><button class="btn pri" data-a="newplan">Pedir um plano</button></div></div>`;
+}
+function platCard(){
+  return`<div class="card" style="margin-top:12px"><h2>Plataforma · pagamentos</h2>
+  <label style="display:block;font-size:13px">Instruções de pagamento (os clientes veem este texto)<textarea id="f_instr" rows="4" style="width:100%;margin-top:4px" placeholder="Banco, IBAN, nome do titular e número Multicaixa Express">${esc(db.instrucoes)}</textarea></label>
+  <div class="acts" style="justify-content:flex-start"><button class="btn" data-a="saveinstr">Guardar instruções</button></div>
+  <h2 style="margin-top:14px">Pedidos de plano por aprovar</h2>
+  ${db.pend.length?`<div class="list">${db.pend.map(x=>`<div class="it"><div class="grow"><div class="t">${esc(x.empresa)} · ${esc(PLANOS[x.plano]||x.plano)}</div><div class="m">${esc(x.metodo||'')} · ${esc(x.referencia||'')} · ${esc(x.pedido_por)} · ${fmtD(x.criado_em)}</div></div><select id="m_${esc(x.id)}" aria-label="Meses"><option value="1">1 mês</option><option value="3">3 meses</option><option value="6">6 meses</option><option value="12">12 meses</option></select><button class="btn pri" data-a="okplan" data-id="${esc(x.id)}">Aprovar</button><button class="btn bad" data-a="noplan" data-id="${esc(x.id)}">Recusar</button></div>`).join('')}</div>`:'<div class="m">Não há pedidos por aprovar.</div>'}</div>`;
+}
+function newPlan(){
+  modal('Pedir um plano',sel('Plano','f_pl','<option value="essencial">Essencial · 15 000 Kz por mês</option><option value="equipa">Equipa · 35 000 Kz por mês</option><option value="empresa">Empresa · sob consulta</option>','w')+sel('Como pagaste','f_me','<option>Transferência bancária</option><option>Multicaixa Express</option><option>Depósito</option><option>Outro</option>','w')+inp('Referência ou número do comprovativo','f_re','','text','w')+`<div class="m w" style="font-size:12px">${db.instrucoes?esc(db.instrucoes):'Pede ao Kamba CRM as instruções de pagamento.'}<br>Depois de confirmarmos o pagamento, o plano é ativado.</div>`,
+    g=>{if(reqName(g,'f_re','Indica a referência do pagamento')===false)return false;
+      const btn=document.querySelector('#mf .pri');btn.disabled=true;
+      sb.from('pedidos_plano').insert({plano:g('f_pl'),metodo:g('f_me'),referencia:g('f_re').slice(0,300),empresa_id:db.empresa.id}).then(async r=>{if(r.error)throw new Error(r.error.message);await loadAll();closeM();render();toast('Pedido enviado. Vamos confirmar o pagamento.')}).catch(e=>{btn.disabled=false;toast('Não foi possível enviar: '+e.message,true)});
+      return false});
+}
+/* CSV: importar e exportar */
+const noAcc=t=>String(t||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
+function parseCSV(t){
+  t=String(t).replace(/^﻿/,'');
+  const l1=t.split(/\r?\n/)[0]||'';
+  const d=l1.split(';').length>l1.split(',').length?';':(l1.includes('\t')&&!l1.includes(',')?'\t':',');
+  const rows=[];let row=[],cur='',q=false;
+  for(let i=0;i<t.length;i++){
+    const c=t[i];
+    if(q){if(c==='"'){if(t[i+1]==='"'){cur+='"';i++}else q=false}else cur+=c}
+    else if(c==='"')q=true;
+    else if(c===d){row.push(cur);cur=''}
+    else if(c==='\n'||c==='\r'){if(c==='\r'&&t[i+1]==='\n')i++;row.push(cur);cur='';if(row.some(x=>x.trim()))rows.push(row);row=[]}
+    else cur+=c;
+  }
+  row.push(cur);if(row.some(x=>x.trim()))rows.push(row);
+  return rows;
+}
+const COLS={nome:['nome','name','cliente','nomecompleto'],empresa:['empresa','company','organizacao'],cargo:['cargo','funcao'],email:['email','mail','correio','emailaddress'],tel:['telefone','tel','telemovel','whatsapp','phone','celular','contacto'],cidade:['cidade','city','localidade'],estado:['estado','status','tipo'],notas:['notas','nota','observacoes','obs','notes']};
+function csvContacts(text){
+  const rows=parseCSV(text);if(rows.length<2)return{erro:'O ficheiro está vazio ou só tem o cabeçalho.'};
+  const head=rows[0].map(noAcc),idx={};
+  for(const[k,al]of Object.entries(COLS)){const i=head.findIndex(h=>al.includes(h));if(i>=0)idx[k]=i}
+  if(idx.nome==null)return{erro:'Não encontrei a coluna "Nome". A primeira linha deve ter os títulos das colunas (Nome, Empresa, Email, Telefone...).'};
+  const seenE=new Set(db.contacts.map(c=>(c.email||'').toLowerCase()).filter(Boolean)),seenT=new Set(db.contacts.map(c=>waNum(c.tel)).filter(Boolean));
+  const ok=[];let semNome=0,dup=0,excesso=0;
+  for(const r of rows.slice(1)){
+    const g=k=>idx[k]==null?'':String(r[idx[k]]??'').trim();
+    const nome=g('nome');if(!nome){semNome++;continue}
+    const email=g('email').toLowerCase(),tel=g('tel'),tn=waNum(tel);
+    if((email&&seenE.has(email))||(tn&&seenT.has(tn))){dup++;continue}
+    if(ok.length>=2000){excesso++;continue}
+    if(email)seenE.add(email);if(tn)seenT.add(tn);
+    const est=STATUS.find(x=>noAcc(x)===noAcc(g('estado')))||'Lead';
+    ok.push({id:uid(),nome:nome.slice(0,200),empresa:g('empresa').slice(0,200),cargo:g('cargo').slice(0,200),email:email.slice(0,200),tel:tel.slice(0,60),cidade:g('cidade').slice(0,100),estado:est,notas:g('notas').slice(0,2000),responsavel:me.email});
+  }
+  return{ok,semNome,dup,excesso};
+}
+function importContacts(file){
+  if(bloqueado())return;
+  const fr=new FileReader();
+  fr.onload=()=>{
+    const r=csvContacts(fr.result);
+    if(r.erro){toast(r.erro,true);return}
+    if(!r.ok.length){toast('Nenhum contacto novo para importar. '+(r.dup?r.dup+' já existiam.':'')+(r.semNome?' '+r.semNome+' sem nome.':''),true);return}
+    $('#modal').innerHTML=`<div class="ov" data-a="close"><div class="modal"><h2>Importar contactos</h2><p style="font-size:14px;margin:0 0 6px">Encontrei <b>${r.ok.length}</b> contacto(s) novo(s) para importar.</p><p class="m" style="font-size:13px;margin:0">${r.dup?r.dup+' já existiam (mesmo email ou telefone). ':''}${r.semNome?r.semNome+' sem nome foram ignorados. ':''}${r.excesso?r.excesso+' ficaram de fora (máximo de 2000 de cada vez). ':''}</p><div class="acts"><button type="button" class="btn" data-a="close">Cancelar</button><button type="button" class="btn pri" id="impgo">Importar ${r.ok.length}</button></div></div></div>`;
+    document.getElementById('impgo').onclick=async()=>{closeM();r.ok.forEach(o=>{db.contacts.unshift(o);touch('contacts',o)});render();await save();toast(r.ok.length+' contactos importados')};
+  };
+  fr.readAsText(file,'utf-8');
+}
+function csvCell(v){let t=String(v??'');if(/^[=+\-@\t\r]/.test(t))t="'"+t;return/[;"\n\r]/.test(t)?'"'+t.replace(/"/g,'""')+'"':t}
+function downloadCSV(nome,cab,linhas){
+  const txt='﻿'+[cab,...linhas].map(r=>r.map(csvCell).join(';')).join('\r\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'text/csv;charset=utf-8'}));a.download=nome;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+function exportContacts(){downloadCSV('kamba-contactos-'+today()+'.csv',['Nome','Empresa','Cargo','Email','Telefone','Cidade','Estado','Notas','Responsável'],db.contacts.map(c=>[c.nome,c.empresa,c.cargo,c.email,c.tel,c.cidade,c.estado,c.notas,c.responsavel]))}
+function exportDeals(){const nm=id=>(db.contacts.find(c=>c.id===id)||{}).nome||'';downloadCSV('kamba-negocios-'+today()+'.csv',['Título','Contacto','Valor (Kz)','Etapa','Fecho previsto','Notas','Responsável'],db.deals.map(d=>[d.titulo,nm(d.contacto),d.valor,(STAGES.find(x=>x.id===d.etapa)||{}).nome||d.etapa,d.fecho,d.notas,d.responsavel]))}
 
 function vTeam(){
   const adm=me.papel==='admin',E=db.empresa||{};
@@ -367,10 +470,11 @@ function vTeam(){
   ${adm?`<div class="m" style="margin:-4px 0 10px;font-size:13px">${plano}${db.team.length} ${lim==='sem limite'?'utilizadores':'utilizadores '+lim} no teu plano.</div>`:''}
   <div class="card"><div class="list">${db.team.map(m=>{const self=m.email.toLowerCase()===me.email.toLowerCase();return`<div class="it"><span class="av">${esc(ini(m.email.split('@')[0]))}</span><div class="grow"><div class="t">${esc(m.email)}${self?' (tu)':''}</div></div>${adm&&!self?`<select data-a="role" data-id="${esc(m.email)}" aria-label="Papel de ${esc(m.email)}">${opt(Object.keys(PAPEL),m.papel,k=>[k,PAPEL[k]])}</select>${m.papel!=='admin'?`<button class="btn" data-a="pwm" data-id="${esc(m.email)}">Nova palavra-passe</button><button class="btn bad" data-a="rmm" data-id="${esc(m.email)}">Remover</button>`:''}`:`<span class="chip ${m.papel==='admin'?'good':'mut'}">${PAPEL[m.papel]||m.papel}</span>`}</div>`}).join('')}</div></div>
   <div class="card" style="margin-top:12px"><h2>Permissões</h2><div class="m" style="font-size:13px;line-height:1.6"><b>Administrador:</b> vê e altera tudo e gere a equipa.<br><b>Gestor:</b> vê e altera tudo, incluindo eliminar registos.<br><b>Vendedor:</b> só vê e altera os contactos, negócios e tarefas de que é responsável. Não elimina registos.</div></div>
+${adm?planoCard():''}
   <div class="card" style="margin-top:12px"><h2>A minha conta</h2><div class="m" style="font-size:13px">${esc(me.email)}</div><div class="acts" style="justify-content:flex-start"><button class="btn" data-a="mypw">Mudar a minha palavra-passe</button><button class="btn" data-a="askout">Terminar sessão</button></div></div>
   ${adm?`<div class="card" style="margin-top:12px"><h2>Dados da empresa</h2><p class="m" style="font-size:13px;margin:0 0 8px">Aparecem no topo dos orçamentos.</p>${E.nome?`<div style="font-size:14px"><b>${esc(E.nome)}</b>${E.nif?' · NIF '+esc(E.nif):''}<div class="m">${esc([E.endereco,E.telefone,E.email].filter(Boolean).join(' · '))}</div><div class="m">IVA ${E.iva_pct}% · validade ${E.validade_dias} dias</div></div>`:'<div class="m">Ainda por preencher.</div>'}<div class="acts" style="justify-content:flex-start"><button class="btn" data-a="editemp">${E.nome?'Editar':'Preencher'}</button></div></div>`:''}
   ${adm?`<div class="card" style="margin-top:12px"><h2>API</h2>${E.plano==='empresa'?`<p class="m" style="font-size:13px;margin:0 0 8px">Para ligar outros sistemas aos dados da tua empresa. Envia a chave no cabeçalho <code>x-api-key</code>. Nunca a coloques no site.</p>${db.chaves.length?`<div class="list">${db.chaves.map(k=>`<div class="it"><div class="grow"><div class="t">${esc(k.nome||'Chave')}</div><div class="m">${esc(k.prefixo)}… · criada em ${new Date(k.criado_em).toLocaleDateString('pt-PT')}</div></div><button class="btn bad" data-a="rmk" data-id="${esc(k.id)}">Apagar</button></div>`).join('')}</div>`:''}<div class="acts" style="justify-content:flex-start"><button class="btn" data-a="newk">Criar chave de API</button></div><div class="tw"><pre style="margin:8px 0 0;padding:12px;font-size:12px;white-space:pre;overflow-x:auto">curl ${esc(api)}/contactos \\\n  -H "x-api-key: A_TUA_CHAVE"</pre></div><p class="m" style="font-size:12px;margin:8px 0 0">Recursos: contactos, negocios e tarefas. Métodos: GET, POST, PATCH e DELETE.</p>`:'<p class="m" style="font-size:13px;margin:0">A API está disponível no plano Empresa.</p>'}</div>`:''}
-  ${me.plataforma?`<div class="card" style="margin-top:12px"><h2>Plataforma · empresas</h2><div class="list">${db.empresas.map(x=>`<div class="it"><div class="grow"><div class="t">${esc(x.nome)}</div><div class="m">${x.utilizadores} utilizador(es) · desde ${new Date(x.criado_em).toLocaleDateString('pt-PT')}</div></div><select data-a="plano" data-id="${esc(x.id)}" aria-label="Plano de ${esc(x.nome)}">${opt(Object.keys(PLANOS),x.plano,k=>[k,PLANOS[k]])}</select></div>`).join('')||'<div class="m">Ainda não há empresas.</div>'}</div></div>
+  ${me.plataforma?`${platCard()}<div class="card" style="margin-top:12px"><h2>Plataforma · empresas</h2><div class="list">${db.empresas.map(x=>`<div class="it"><div class="grow"><div class="t">${esc(x.nome)}</div><div class="m">${x.utilizadores} utilizador(es) · desde ${new Date(x.criado_em).toLocaleDateString('pt-PT')}</div></div><select data-a="plano" data-id="${esc(x.id)}" aria-label="Plano de ${esc(x.nome)}">${opt(Object.keys(PLANOS),x.plano,k=>[k,PLANOS[k]])}</select></div>`).join('')||'<div class="m">Ainda não há empresas.</div>'}</div></div>
   <div class="card" style="margin-top:12px"><h2>Pedidos de demonstração</h2>${db.pedidos.length?`<div class="list">${db.pedidos.map(p=>`<div class="it"><div class="grow"><div class="t">${esc(p.nome)}${p.empresa?' · '+esc(p.empresa):''}</div><div class="m">${esc(p.email)}${p.telefone?' · '+esc(p.telefone):''} · ${new Date(p.criado_em).toLocaleDateString('pt-PT')}</div>${p.mensagem?`<div class="m" style="margin-top:2px">${esc(p.mensagem)}</div>`:''}</div><button class="btn" data-a="rmp" data-id="${esc(p.id)}">Remover</button></div>`).join('')}</div>`:'<div class="m">Ainda não há pedidos. Os que chegarem pela página de vendas aparecem aqui.</div>'}</div>`:''}`;
 }
 const WA_ICO='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 01-12.4 7.4L3 20.5l1.7-5.4A8.4 8.4 0 1121 11.5z"/></svg>';
@@ -431,7 +535,8 @@ function vDash(){
   </div>`;
 }
 function vContacts(){
-  return`<div class="head"><div><h1>Contactos</h1><p>${db.contacts.length} pessoas em ${new Set(db.contacts.map(c=>c.empresa)).size} empresas</p></div><button class="btn pri" data-a="newc">Novo contacto</button></div>
+  return`<div class="head"><div><h1>Contactos</h1><p>${db.contacts.length} pessoas em ${new Set(db.contacts.map(c=>c.empresa)).size} empresas</p></div><div class="acts" style="margin:0"><button class="btn" data-a="impc">Importar</button><button class="btn" data-a="expc">Exportar</button><button class="btn pri" data-a="newc">Novo contacto</button></div></div>
+  <input type="file" id="impf" accept=".csv,.txt,text/csv" hidden>
   <div class="tools"><input id="q" type="search" placeholder="Pesquisar por nome, empresa ou email" value="${esc(ui.q)}" aria-label="Pesquisar contactos"><select id="st" aria-label="Filtrar por estado"><option value="">Todos os estados</option>${STATUS.map(s=>`<option ${ui.st===s?'selected':''}>${s}</option>`).join('')}</select></div>
   <div class="tw"><table><thead><tr><th>Nome</th><th>Empresa</th><th>Contacto</th><th>Cidade</th><th>Estado</th>${isMgr()?'<th>Responsável</th>':''}</tr></thead><tbody id="clist"></tbody></table></div>`;
 }
@@ -442,7 +547,7 @@ function listContacts(){
 }
 function vPipe(){
   const open=db.deals.filter(isOpen);
-  return`<div class="head"><div><h1>Pipeline</h1><p>${open.length} negócios abertos. Arrasta os cartões entre colunas para mudar de etapa.</p></div><button class="btn pri" data-a="newd">Novo negócio</button></div>
+  return`<div class="head"><div><h1>Pipeline</h1><p>${open.length} negócios abertos. Arrasta os cartões entre colunas para mudar de etapa.</p></div><div class="acts" style="margin:0"><button class="btn" data-a="expd">Exportar</button><button class="btn pri" data-a="newd">Novo negócio</button></div></div>
   <div class="board">${STAGES.map(s=>{const ds=db.deals.filter(d=>d.etapa===s.id);return`<div class="col" data-stage="${s.id}"><h3><span style="display:flex;align-items:center;gap:7px"><i style="width:9px;height:9px;border-radius:50%;background:${s.cor};display:inline-block"></i>${s.nome}</span><span class="tot">${ds.length} · ${kzc(ds.reduce((a,d)=>a+d.valor,0))}</span></h3>${ds.map(d=>`<div class="deal" draggable="true" data-a="editd" data-id="${d.id}"><div class="t">${esc(d.titulo)}</div><div class="m">${esc(ccomp(d.contacto)||'Sem empresa')}${d.contacto?' · '+esc(cname(d.contacto)):''}</div><div class="val">${kz(d.valor)}</div><div class="m">Fecho previsto ${fdate(d.fecho)}${isMgr()&&d.responsavel?' · '+esc(d.responsavel.split('@')[0]):''}</div>${d.contacto&&waNum((db.contacts.find(c=>c.id===d.contacto)||{}).tel)?`<button type="button" class="wa" data-a="wa" data-id="${d.contacto}" data-deal="${d.id}" aria-label="Enviar WhatsApp sobre ${esc(d.titulo)}">${WA_ICO}WhatsApp</button>`:''}<select class="mv" data-a="mv" data-id="${d.id}" aria-label="Mover para outra etapa">${opt(STAGES,d.etapa,x=>[x.id,'Mover para: '+x.nome])}</select></div>`).join('')}</div>`}).join('')}</div>`;
 }
 function vTasks(){
@@ -642,11 +747,19 @@ document.addEventListener('click',e=>{
   if(a==='samples'){loadSamples();return}
   if(a==='rmm'){if(!el.dataset.s){el.dataset.s=1;el.textContent='Confirmar';return}equipaApi({acao:'remover',email:id}).then(async()=>{await loadAll();render();toast('Pessoa removida')}).catch(e=>toast(e.message,true));return}
   if(a==='newm'){editMember();return}
+  if(a==='newplan'){newPlan();return}
+  if(a==='saveinstr'){sb.rpc('guardar_instrucoes',{p_texto:$('#f_instr').value}).then(r=>{if(r.error)toast('Não foi possível guardar',true);else{db.instrucoes=$('#f_instr').value;toast('Instruções guardadas')}});return}
+  if(a==='okplan'||a==='noplan'){const m=a==='okplan'?+($('#m_'+id)||{}).value||1:1;sb.rpc('decidir_pedido_plano',{p_id:id,p_aprovar:a==='okplan',p_meses:m}).then(async r=>{if(r.error)toast('Não foi possível decidir: '+r.error.message,true);else{await loadAll();render();toast(a==='okplan'?'Plano ativado':'Pedido recusado')}});return}
+  if(a==='impc'){const f=$('#impf');f.value='';f.click();return}
+  if(a==='expc'){exportContacts();return}
+  if(a==='expd'){exportDeals();return}
+  if(a==='forgot'){showForgot();return}
   if(a==='rmp'){if(!el.dataset.s){el.dataset.s=1;el.textContent='Confirmar';return}sb.from('pedidos_demo').delete().eq('id',id).then(r=>{if(r.error)toast('Não foi possível remover',true);else{db.pedidos=db.pedidos.filter(x=>x.id!==id);render()}});return}
   ({newq:()=>editQuote(),editq:()=>editQuote(id),newc:()=>editContact(),editc:()=>editContact(id),newd:()=>editDeal(),editd:()=>editDeal(id),newt:()=>editTask(),editt:()=>editTask(id)})[a]?.();
 });
 document.addEventListener('change',e=>{
   const el=e.target;
+  if(el.id==='impf'&&el.files&&el.files[0]){importContacts(el.files[0]);return}
   if(el.dataset.a==='tick'){const t=db.tasks.find(x=>x.id===el.dataset.id);t.feito=el.checked;touch('tasks',t);save();render()}
   if(el.dataset.a==='mv'){const d=db.deals.find(x=>x.id===el.dataset.id);if(d){d.etapa=el.value;touch('deals',d);save();render()}}
   if(el.dataset.a==='plano'){sb.rpc('definir_plano',{p_empresa:el.dataset.id,p_plano:el.value}).then(r=>{if(r.error)toast('Não foi possível mudar o plano',true);else toast('Plano atualizado')});return}
@@ -669,10 +782,44 @@ function showAuth(mode='login',msg='',ok=false){
   $('#auth').innerHTML=`<div class="authbox card"><div class="brand"><img src="assets/favicon.svg" width="30" height="30" alt="" style="border-radius:8px;flex:none">Kamba CRM</div>
   <h1 style="font-size:22px">${su?'Criar a conta da tua empresa':'Entrar'}</h1>${su?'<p class="m" style="font-size:13px;margin:0 0 6px">Ficas como administrador e crias depois o perfil de cada pessoa da tua equipa.</p>':''}${msg?`<div class="msg ${ok?'ok':''}">${esc(msg)}</div>`:''}
   <form id="af" data-mode="${mode}" novalidate>${su?'<label>Nome da empresa<input id="a_emp" type="text" autocomplete="organization" maxlength="160" required></label>':''}<label>Email<input id="a_em" type="email" autocomplete="email" required></label><label>Palavra-passe<input id="a_pw" type="password" autocomplete="${su?'new-password':'current-password'}" minlength="8" required></label><button class="btn pri" id="a_go">${su?'Criar conta':'Entrar'}</button></form>
+  ${su?'':'<div class="m"><button class="link" data-a="forgot">Esqueci a palavra-passe</button></div>'}
   <div class="m">${su?'Já tens conta?':'Ainda não tens conta?'} <button class="link" data-a="authmode" data-m="${su?'login':'signup'}">${su?'Entrar':'Criar conta'}</button></div>
   ${su?'':'<div class="m" style="font-size:12px">Fazes parte de uma equipa? Usa o email e a palavra-passe que o teu administrador te deu.</div>'}
   <div class="m"><a href="index.html">Voltar à página inicial</a></div></div>`;
 }
+function showForgot(msg='',ok=false){
+  $('#app').hidden=true;$('#auth').hidden=false;
+  $('#auth').innerHTML=`<div class="authbox card"><div class="brand"><img src="assets/favicon.svg" width="30" height="30" alt="" style="border-radius:8px;flex:none">Kamba CRM</div>
+  <h1 style="font-size:22px">Recuperar palavra-passe</h1><p class="m" style="font-size:13px;margin:0 0 6px">Indica o teu email e enviamos um link para criares uma nova palavra-passe.</p>${msg?`<div class="msg ${ok?'ok':''}">${esc(msg)}</div>`:''}
+  <form id="ff" novalidate><label>Email<input id="r_em" type="email" autocomplete="email" required></label><button class="btn pri" id="r_go">Enviar link</button></form>
+  <div class="m"><button class="link" data-a="authmode" data-m="login">Voltar a entrar</button></div></div>`;
+}
+document.addEventListener('submit',async e=>{
+  if(e.target.id!=='ff')return;e.preventDefault();
+  const em=$('#r_em').value.trim();if(!/^\S+@\S+\.\S+$/.test(em)){showForgot('Indica um email válido.');return}
+  $('#r_go').disabled=true;
+  const{error}=await sb.auth.resetPasswordForEmail(em,{redirectTo:location.origin+location.pathname});
+  if(error&&/rate|seconds|many/i.test(error.message)){showForgot('Já pediste um link há pouco tempo. Espera um minuto e tenta outra vez.');return}
+  showForgot('Se este email tiver conta, enviámos um link. Abre o email e segue as instruções.',true);
+});
+function showNewPw(msg=''){
+  $('#app').hidden=true;$('#auth').hidden=false;
+  $('#auth').innerHTML=`<div class="authbox card"><div class="brand"><img src="assets/favicon.svg" width="30" height="30" alt="" style="border-radius:8px;flex:none">Kamba CRM</div>
+  <h1 style="font-size:22px">Nova palavra-passe</h1>${msg?`<div class="msg">${esc(msg)}</div>`:''}
+  <form id="nf" novalidate><label>Nova palavra-passe (mínimo 8 caracteres)<input id="n_pw" type="password" autocomplete="new-password" minlength="8" required></label><label>Repete a palavra-passe<input id="n_pw2" type="password" autocomplete="new-password" required></label><button class="btn pri" id="n_go">Guardar e entrar</button></form></div>`;
+}
+document.addEventListener('submit',async e=>{
+  if(e.target.id!=='nf')return;e.preventDefault();
+  const a=$('#n_pw').value,b=$('#n_pw2').value;
+  if(a.length<8){showNewPw('A palavra-passe tem de ter pelo menos 8 caracteres.');return}
+  if(a!==b){showNewPw('As palavras-passe não são iguais.');return}
+  $('#n_go').disabled=true;
+  const{error}=await sb.auth.updateUser({password:a});
+  if(error){showNewPw(error.message);return}
+  history.replaceState(null,'',location.pathname);
+  const{data:{session}}=await sb.auth.getSession();
+  if(session)enter(session);else showAuth('login','Palavra-passe atualizada. Já podes entrar.',true);
+});
 function showCreateCompany(prefill=''){
   $('#app').hidden=true;$('#auth').hidden=false;
   $('#auth').innerHTML=`<div class="authbox card"><div class="brand"><img src="assets/favicon.svg" width="30" height="30" alt="" style="border-radius:8px;flex:none">Kamba CRM</div>
@@ -743,13 +890,14 @@ document.addEventListener('submit',async e=>{
     enter(data.session);
   }
 });
-sb.auth.onAuthStateChange((ev)=>{if(ev==='SIGNED_OUT'){db=DB0();queue=[];offline=false;netBanner();location.replace('index.html')}});
+sb.auth.onAuthStateChange((ev)=>{if(ev==='PASSWORD_RECOVERY'){showNewPw();return}if(ev==='SIGNED_OUT'){db=DB0();queue=[];offline=false;netBanner();location.replace('index.html')}});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')sync()});
 addEventListener('online',()=>{sync()});
 addEventListener('offline',()=>{offline=true;netBanner()});
 setInterval(()=>{if(queue.length&&navigator.onLine)sync()},30000);
 (async()=>{
   let ses=null;try{ses=(await sb.auth.getSession()).data.session}catch(e){}
+  if(RECOVERY){if(ses)showNewPw();else showAuth('login','O link expirou ou já foi usado. Pede outro em "Esqueci a palavra-passe".');return}
   if(ses)enter(ses);
   else if(!navigator.onLine&&lsGet('kamba-last'))enter({user:{email:lsGet('kamba-last')}});
   else if(location.hash==='#entrar')showAuth('login');
