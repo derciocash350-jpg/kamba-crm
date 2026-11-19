@@ -1,13 +1,12 @@
 /* Kamba CRM: guarda a aplicação no aparelho para abrir sem internet.
    Os pedidos à base de dados (supabase.co) nunca passam por aqui. */
-const VERSAO = 'kamba-v3';
-const BIBLIOTECA = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js';
-const BASE = ['app.html', 'index.html', 'manifest.webmanifest', 'assets/favicon.svg', 'assets/icon-192.png', 'assets/icon-512.png'];
+const VERSAO = 'kamba-v4';
+const BASE = ['app.html', 'index.html', 'manifest.webmanifest', 'assets/supabase.js', 'assets/favicon.svg', 'assets/icon-192.png', 'assets/icon-512.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(VERSAO)
-      .then((c) => c.addAll(BASE).then(() => fetch(BIBLIOTECA, { mode: 'no-cors' }).then((r) => c.put(BIBLIOTECA, r)).catch(() => {})))
+      .then((c) => c.addAll(BASE))
       .then(() => self.skipWaiting()),
   );
 });
@@ -28,11 +27,12 @@ self.addEventListener('fetch', (e) => {
 
   const mesmaOrigem = url.origin === self.location.origin;
   if (mesmaOrigem && req.mode === 'navigate') {
-    // páginas: tenta a rede (para trazer versões novas) e usa a cópia se estiver sem ligação
+    // páginas: tenta a rede durante 2,5 s (para trazer versões novas). Se a ligação for lenta ou falhar, abre a cópia guardada.
+    const copia = () => caches.match(req, { ignoreSearch: true }).then((r) => r || caches.match(req.url.includes('app.html') ? 'app.html' : 'index.html'));
+    const rede = fetch(req).then((r) => { const c = r.clone(); caches.open(VERSAO).then((x) => x.put(req, c)); return r; });
+    const limite = new Promise((res) => setTimeout(() => res(null), 2500));
     e.respondWith(
-      fetch(req)
-        .then((r) => { const c = r.clone(); caches.open(VERSAO).then((x) => x.put(req, c)); return r; })
-        .catch(() => caches.match(req, { ignoreSearch: true }).then((r) => r || caches.match(req.url.includes('app.html') ? 'app.html' : 'index.html'))),
+      Promise.race([rede, limite]).then((r) => r || copia().then((c) => c || rede)).catch(() => copia()),
     );
     return;
   }

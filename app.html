@@ -8,7 +8,9 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap">
+<link rel="preconnect" href="https://dywzfjrisvgkujamueql.supabase.co" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap"></noscript>
 <style>
 /* Layout: barra lateral fixa + área de trabalho; em ecrãs estreitos a barra passa para o topo */
 :root{
@@ -102,7 +104,7 @@ tbody tr{cursor:pointer}tbody tr:hover{background:var(--accent-soft)}
 .seg button{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:6px 14px;cursor:pointer}
 .seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .empty{padding:28px 12px;text-align:center;color:var(--muted)}
-.ov{position:fixed;inset:0;background:rgba(8,16,15,.55);display:flex;align-items:flex-start;justify-content:center;padding:max(16px,env(safe-area-inset-top,0px)) 16px 16px;overflow-y:auto;z-index:20}
+.ov{position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(8,16,15,.55);display:flex;align-items:flex-start;justify-content:center;padding:max(16px,env(safe-area-inset-top,0px)) 16px 16px;overflow-y:auto;z-index:20}
 .modal{background:var(--surface);border-radius:14px;width:100%;max-width:520px;padding:20px;margin-top:4vh;box-shadow:var(--shadow);border:1px solid var(--line)}
 .modal h2{font-size:20px;margin-bottom:14px}
 .fg{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -151,7 +153,7 @@ tbody tr{cursor:pointer}tbody tr:hover{background:var(--accent-soft)}
 .qi input{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--fg);min-width:0;width:100%}
 .qi .btn{padding:6px 0}
 #qtot{background:var(--accent-soft);border-radius:10px;padding:10px 14px;font-size:13px}
-.doc-ov{position:fixed;inset:0;background:#dfe6e5;z-index:50;overflow:auto;padding:12px}
+.doc-ov{position:fixed;top:0;right:0;bottom:0;left:0;background:#dfe6e5;z-index:50;overflow:auto;padding:12px}
 .doc-tools{max-width:794px;margin:0 auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .doc-tools .m{color:#566865}
 .doc{background:#fff;color:#111;max-width:794px;margin:12px auto;padding:44px;box-shadow:0 2px 24px rgba(0,0,0,.12);font:14px/1.5 Inter,system-ui,sans-serif}
@@ -188,7 +190,7 @@ tbody tr{cursor:pointer}tbody tr:hover{background:var(--accent-soft)}
 </head>
 <body>
 <div id="net" role="status" hidden></div>
-<div id="auth"></div>
+<div id="auth"><div class="authbox card"><div class="brand"><img src="assets/favicon.svg" width="30" height="30" alt="" style="border-radius:8px;flex:none">Kamba CRM</div><p class="m" style="font-size:14px;margin:0">A carregar…</p></div></div>
 <div class="app" id="app" hidden>
   <aside class="side">
     <div class="brand"><img src="assets/favicon.svg" width="30" height="30" alt="" style="border-radius:8px;flex:none">Kamba CRM</div>
@@ -200,15 +202,15 @@ tbody tr{cursor:pointer}tbody tr:hover{background:var(--accent-soft)}
 <div id="modal"></div>
 <div id="doc" class="doc-ov" hidden></div>
 <div id="toast" role="status" hidden></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="assets/supabase.js"></script>
 
 <script>
 const STAGES=[{id:'novo',nome:'Novo',p:.1,cor:'#7a8fa6'},{id:'qual',nome:'Qualificado',p:.3,cor:'#3b82c4'},{id:'prop',nome:'Proposta',p:.55,cor:'#d9a22b'},{id:'neg',nome:'Negociação',p:.8,cor:'#d9772b'},{id:'ganho',nome:'Ganho',p:1,cor:'#1a9a5a'},{id:'perdido',nome:'Perdido',p:0,cor:'#c4504a'}];
 const STATUS=['Lead','Cliente','Inativo'];
 const KEY='nexo-crm-v1';
 const $=s=>document.querySelector(s);
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const uid=()=>crypto.randomUUID();
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>crypto.randomUUID?crypto.randomUUID():'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=crypto.getRandomValues(new Uint8Array(1))[0]&15;return(c==='x'?r:(r&3|8)).toString(16)});
 const pad=n=>String(n).padStart(2,'0');
 const iso=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
 const off=n=>{const d=new Date();d.setDate(d.getDate()+n);return iso(d)};
@@ -320,27 +322,32 @@ async function save(){
   }finally{saving=false}
 }
 async function reloadQuotes(){const o=await sb.from('orcamentos').select('*').order('criado_em',{ascending:false});if(!o.error)db.orcamentos=o.data.map(fromRow.orcamentos)}
+let lastLoad=0;
 async function loadAll(){
-  const [c,d,t,e,o,em]=await Promise.all([
+  const adm=me.papel==='admin',pl=me.plataforma;
+  const Q=[
     sb.from('contactos').select('*').order('criado_em',{ascending:false}),
     sb.from('negocios').select('*').order('criado_em'),
     sb.from('tarefas').select('*').order('criado_em'),
     sb.from('equipa').select('*').order('criado_em'),
     sb.from('orcamentos').select('*').order('criado_em',{ascending:false}),
-    sb.from('empresas').select('*').limit(1)]);
+    sb.from('empresas').select('*').limit(1),
+    sb.from('plataforma_config').select('instrucoes_pagamento').limit(1),
+    adm?sb.from('pedidos_plano').select('*').order('criado_em',{ascending:false}).limit(20):null,
+    adm?sb.from('api_chaves').select('id,nome,prefixo,criado_em').order('criado_em',{ascending:false}):null,
+    pl?sb.from('pedidos_demo').select('*').order('criado_em',{ascending:false}).limit(50):null,
+    pl?sb.rpc('resumo_empresas'):null,
+    pl?sb.rpc('pedidos_plano_pendentes'):null];
+  const[c,d,t,e,o,em,cf,pp,k,p,r,q]=await Promise.all(Q);
   const err=c.error||d.error||t.error||e.error||o.error||em.error;
   if(err){if(isNet(err)){offline=true;netBanner()}else toast('Erro ao carregar dados: '+err.message,true);return false}
   db.contacts=c.data;db.deals=d.data.map(fromRow.deals);db.tasks=t.data.map(fromRow.tasks);db.team=e.data;
   db.orcamentos=o.data.map(fromRow.orcamentos);db.empresa=(em.data&&em.data[0])||{};
-  db.pedidos=[];db.empresas=[];db.chaves=[];db.pedPlano=[];db.pend=[];
-  {const cf=await sb.from('plataforma_config').select('instrucoes_pagamento').limit(1);db.instrucoes=(!cf.error&&cf.data&&cf.data[0]&&cf.data[0].instrucoes_pagamento)||''}
-  if(me.papel==='admin'){const pp=await sb.from('pedidos_plano').select('*').order('criado_em',{ascending:false}).limit(20);db.pedPlano=pp.error?[]:pp.data.filter(x=>x.empresa_id===db.empresa.id)}
-  if(me.plataforma){
-    const [p,r,q]=await Promise.all([sb.from('pedidos_demo').select('*').order('criado_em',{ascending:false}).limit(50),sb.rpc('resumo_empresas'),sb.rpc('pedidos_plano_pendentes')]);
-    db.pedidos=(!p.error&&p.data)||[];db.empresas=(!r.error&&r.data)||[];db.pend=(!q.error&&q.data)||[];
-  }
-  if(me.papel==='admin'&&db.empresa.plano==='empresa'){const k=await sb.from('api_chaves').select('id,nome,prefixo,criado_em').order('criado_em',{ascending:false});db.chaves=k.error?[]:k.data}
-  offline=false;netBanner();snap();
+  db.instrucoes=(cf&&!cf.error&&cf.data&&cf.data[0]&&cf.data[0].instrucoes_pagamento)||'';
+  db.pedPlano=(pp&&!pp.error&&pp.data||[]).filter(x=>x.empresa_id===db.empresa.id);
+  db.chaves=(db.empresa.plano==='empresa'&&k&&!k.error&&k.data)||[];
+  db.pedidos=(p&&!p.error&&p.data)||[];db.empresas=(r&&!r.error&&r.data)||[];db.pend=(q&&!q.error&&q.data)||[];
+  offline=false;netBanner();snap();lastLoad=Date.now();
   return true;
 }
 async function sync(){
@@ -430,7 +437,7 @@ function csvContacts(text){
   const seenE=new Set(db.contacts.map(c=>(c.email||'').toLowerCase()).filter(Boolean)),seenT=new Set(db.contacts.map(c=>waNum(c.tel)).filter(Boolean));
   const ok=[];let semNome=0,dup=0,excesso=0;
   for(const r of rows.slice(1)){
-    const g=k=>idx[k]==null?'':String(r[idx[k]]??'').trim();
+    const g=k=>idx[k]==null?'':String(r[idx[k]]==null?'':r[idx[k]]).trim();
     const nome=g('nome');if(!nome){semNome++;continue}
     const email=g('email').toLowerCase(),tel=g('tel'),tn=waNum(tel);
     if((email&&seenE.has(email))||(tn&&seenT.has(tn))){dup++;continue}
@@ -453,7 +460,7 @@ function importContacts(file){
   };
   fr.readAsText(file,'utf-8');
 }
-function csvCell(v){let t=String(v??'');if(/^[=+\-@\t\r]/.test(t))t="'"+t;return/[;"\n\r]/.test(t)?'"'+t.replace(/"/g,'""')+'"':t}
+function csvCell(v){let t=String(v==null?'':v);if(/^[=+\-@\t\r]/.test(t))t="'"+t;return/[;"\n\r]/.test(t)?'"'+t.replace(/"/g,'""')+'"':t}
 function downloadCSV(nome,cab,linhas){
   const txt='﻿'+[cab,...linhas].map(r=>r.map(csvCell).join(';')).join('\r\n');
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'text/csv;charset=utf-8'}));a.download=nome;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
@@ -755,7 +762,7 @@ document.addEventListener('click',e=>{
   if(a==='expd'){exportDeals();return}
   if(a==='forgot'){showForgot();return}
   if(a==='rmp'){if(!el.dataset.s){el.dataset.s=1;el.textContent='Confirmar';return}sb.from('pedidos_demo').delete().eq('id',id).then(r=>{if(r.error)toast('Não foi possível remover',true);else{db.pedidos=db.pedidos.filter(x=>x.id!==id);render()}});return}
-  ({newq:()=>editQuote(),editq:()=>editQuote(id),newc:()=>editContact(),editc:()=>editContact(id),newd:()=>editDeal(),editd:()=>editDeal(id),newt:()=>editTask(),editt:()=>editTask(id)})[a]?.();
+  const fn=({newq:()=>editQuote(),editq:()=>editQuote(id),newc:()=>editContact(),editc:()=>editContact(id),newd:()=>editDeal(),editd:()=>editDeal(id),newt:()=>editTask(),editt:()=>editTask(id)})[a];if(fn)fn();
 });
 document.addEventListener('change',e=>{
   const el=e.target;
@@ -844,11 +851,22 @@ function useSnapshot(){
   if(!sn){showAuth('login','Sem ligação e sem dados guardados neste aparelho. Liga-te à internet para entrar.');return false}
   db=Object.assign(DB0(),sn.db);me.papel=sn.me.papel;me.plataforma=!!sn.me.plataforma;offline=true;return true;
 }
+function showApp(){
+  $('#who').textContent=me.email+' ('+(PAPEL[me.papel]||me.papel).toLowerCase()+')';
+  $('#auth').hidden=true;$('#app').hidden=false;netBanner();
+  if(location.hash==='#entrar'||location.hash==='#criar')history.replaceState(null,'',location.pathname);
+  route();
+}
 async function enter(session){
   me.email=session.user.email;
+  try{queue=JSON.parse(lsGet(qKey())||'[]')}catch(e){queue=[]}
+  // mostra logo os dados guardados neste aparelho e atualiza em segundo plano
+  let shown=false;
+  try{const sn=JSON.parse(lsGet(sKey())||'null');if(sn&&sn.me&&sn.me.papel&&sn.db){db=Object.assign(DB0(),sn.db);me.papel=sn.me.papel;me.plataforma=!!sn.me.plataforma;shown=true;showApp()}}catch(e){}
   let papel=null;
   if(navigator.onLine){
-    const{data,error}=await sb.rpc('reclamar_conta');
+    const[rc,pl]=await Promise.all([sb.rpc('reclamar_conta'),sb.rpc('eh_plataforma')]);
+    const{data,error}=rc;
     if(error&&!isNet(error)){showAuth('login','Erro ao verificar o acesso: '+error.message);return}
     if(!error){
       papel=data;
@@ -858,19 +876,15 @@ async function enter(session){
         if(nome.length>=2){try{papel=await criarEmpresa(nome)}catch(err){showCreateCompany(nome);return}}
         else{showCreateCompany('');return}
       }
-      try{const pl=await sb.rpc('eh_plataforma');me.plataforma=pl.data===true}catch(e){}
+      me.plataforma=!pl.error&&pl.data===true;
     }
   }
-  try{queue=JSON.parse(lsGet(qKey())||'[]')}catch(e){queue=[]}
   if(papel){
     me.papel=papel;
     if(queue.length)await save();
-    if(!await loadAll()&&!useSnapshot())return;
-  }else if(!useSnapshot())return;
-  $('#who').textContent=me.email+' ('+(PAPEL[me.papel]||me.papel).toLowerCase()+')';
-  $('#auth').hidden=true;$('#app').hidden=false;netBanner();
-  if(location.hash==='#entrar'||location.hash==='#criar')history.replaceState(null,'',location.pathname);
-  route();
+    if(!await loadAll()){if(!shown&&!useSnapshot())return}
+  }else{if(shown)offline=true;else if(!useSnapshot())return}
+  showApp();
 }
 document.addEventListener('click',e=>{const b=e.target.closest('[data-a="authmode"]');if(b)showAuth(b.dataset.m)});
 document.addEventListener('submit',async e=>{
@@ -891,7 +905,7 @@ document.addEventListener('submit',async e=>{
   }
 });
 sb.auth.onAuthStateChange((ev)=>{if(ev==='PASSWORD_RECOVERY'){showNewPw();return}if(ev==='SIGNED_OUT'){db=DB0();queue=[];offline=false;netBanner();location.replace('index.html')}});
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')sync()});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&(queue.length||Date.now()-lastLoad>60000))sync()});
 addEventListener('online',()=>{sync()});
 addEventListener('offline',()=>{offline=true;netBanner()});
 setInterval(()=>{if(queue.length&&navigator.onLine)sync()},30000);
