@@ -380,7 +380,7 @@ async function loadSamples(setor){
   s.contacts.forEach(c=>touch('contacts',c));s.deals.forEach(d=>touch('deals',d));s.tasks.forEach(t=>touch('tasks',t));
   render();await save();
 }
-const ui={view:'dashboard',q:'',st:'',tf:'pend'};
+const ui={view:'dashboard',q:'',st:'',tf:'pend',sel:new Set()};
 const VIEWS=[['dashboard','Painel','M3 12l9-9 9 9M5 10v10h14V10'],['contactos','Contactos','M16 11a4 4 0 10-8 0 4 4 0 008 0zM4 21c0-4 4-6 8-6s8 2 8 6'],['pipeline','Pipeline','M3 4h5v16H3zM10 4h5v10h-5zM17 4h4v6h-4z'],['orcamentos','Orçamentos','M7 3h8l4 4v14H7zM14 3v5h5M10 13h6M10 17h6'],['tarefas','Tarefas','M9 11l3 3 8-8M4 12v8h14v-5'],['equipa','Equipa','M17 20v-1a4 4 0 00-4-4H7a4 4 0 00-4 4v1M10 11a4 4 0 100-8 4 4 0 000 8zM21 20v-1a4 4 0 00-3-3.9M16 3.1a4 4 0 010 7.8']];
 const cname=id=>(db.contacts.find(c=>c.id===id)||{}).nome||'';
 const ccomp=id=>(db.contacts.find(c=>c.id===id)||{}).empresa||'';
@@ -528,7 +528,7 @@ ${adm?planoCard():''}
   ${adm?autoCard()+capturaCard():''}
   ${adm?`<div class="card" style="margin-top:12px"><h2>Dados da empresa</h2><p class="m" style="font-size:13px;margin:0 0 8px">Aparecem no topo dos orçamentos.</p>${E.nome?`<div style="font-size:14px"><b>${esc(E.nome)}</b>${E.nif?' · NIF '+esc(E.nif):''}<div class="m">${esc([E.endereco,E.telefone,E.email].filter(Boolean).join(' · '))}</div><div class="m">IVA ${E.iva_pct}% · validade ${E.validade_dias} dias</div></div>`:'<div class="m">Ainda por preencher.</div>'}<div class="acts" style="justify-content:flex-start"><button class="btn" data-a="editemp">${E.nome?'Editar':'Preencher'}</button></div></div>`:''}
   ${adm?`<div class="card" style="margin-top:12px"><h2>API</h2>${E.plano==='empresa'?`<p class="m" style="font-size:13px;margin:0 0 8px">Para ligar outros sistemas aos dados da tua empresa. Envia a chave no cabeçalho <code>x-api-key</code>. Nunca a coloques no site.</p>${db.chaves.length?`<div class="list">${db.chaves.map(k=>`<div class="it"><div class="grow"><div class="t">${esc(k.nome||'Chave')}</div><div class="m">${esc(k.prefixo)}… · criada em ${new Date(k.criado_em).toLocaleDateString('pt-PT')}</div></div><button class="btn bad" data-a="rmk" data-id="${esc(k.id)}">Apagar</button></div>`).join('')}</div>`:''}<div class="acts" style="justify-content:flex-start"><button class="btn" data-a="newk">Criar chave de API</button></div><div class="tw"><pre style="margin:8px 0 0;padding:12px;font-size:12px;white-space:pre;overflow-x:auto">curl ${esc(api)}/contactos \\\n  -H "x-api-key: A_TUA_CHAVE"</pre></div><p class="m" style="font-size:12px;margin:8px 0 0">Recursos: contactos, negocios e tarefas. Métodos: GET, POST, PATCH e DELETE.</p>`:'<p class="m" style="font-size:13px;margin:0">A API está disponível no plano Empresa.</p>'}</div>`:''}
-  ${me.plataforma?`${platCard()}<div class="card" style="margin-top:12px"><h2>Plataforma · empresas</h2><div class="list">${db.empresas.map(x=>`<div class="it"><div class="grow"><div class="t">${esc(x.nome)}</div><div class="m">${x.utilizadores} utilizador(es) · desde ${new Date(x.criado_em).toLocaleDateString('pt-PT')}</div></div><select data-a="plano" data-id="${esc(x.id)}" aria-label="Plano de ${esc(x.nome)}">${opt(Object.keys(PLANOS),x.plano,k=>[k,PLANOS[k]])}</select></div>`).join('')||'<div class="m">Ainda não há empresas.</div>'}</div></div>
+  ${me.plataforma?`${platCard()}<div class="card" style="margin-top:12px"><h2>Plataforma · empresas</h2><div class="list">${db.empresas.map(x=>`<div class="it"><div class="grow"><div class="t">${esc(x.nome)}</div><div class="m">${x.utilizadores} utilizador(es) · desde ${new Date(x.criado_em).toLocaleDateString('pt-PT')}${x.fim?(()=>{const d=Math.ceil((new Date(x.fim).getTime()-Date.now())/DAY);return' · '+(d<0?'<b style="color:var(--bad)">terminou há '+(-d)+' dia(s)</b>':d<=3?'<b style="color:var(--warn)">termina em '+d+' dia(s)</b>':'termina em '+fmtD(x.fim))})():''}${x.admin_email?' · <a href="mailto:'+esc(x.admin_email)+'">'+esc(x.admin_email)+'</a>':''}</div></div><select data-a="plano" data-id="${esc(x.id)}" aria-label="Plano de ${esc(x.nome)}">${opt(Object.keys(PLANOS),x.plano,k=>[k,PLANOS[k]])}</select></div>`).join('')||'<div class="m">Ainda não há empresas.</div>'}</div></div>
   <div class="card" style="margin-top:12px"><h2>Pedidos de demonstração</h2>${db.pedidos.length?`<div class="list">${db.pedidos.map(p=>`<div class="it"><div class="grow"><div class="t">${esc(p.nome)}${p.empresa?' · '+esc(p.empresa):''}</div><div class="m">${esc(p.email)}${p.telefone?' · '+esc(p.telefone):''} · ${new Date(p.criado_em).toLocaleDateString('pt-PT')}</div>${p.mensagem?`<div class="m" style="margin-top:2px">${esc(p.mensagem)}</div>`:''}</div><button class="btn" data-a="rmp" data-id="${esc(p.id)}">Remover</button></div>`).join('')}</div>`:'<div class="m">Ainda não há pedidos. Os que chegarem pela página de vendas aparecem aqui.</div>'}</div>`:''}`;
 }
 const WA_ICO='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 01-12.4 7.4L3 20.5l1.7-5.4A8.4 8.4 0 1121 11.5z"/></svg>';
@@ -653,12 +653,39 @@ function vContacts(){
   return`<div class="head"><div><h1>Contactos</h1><p>${db.contacts.length} pessoas em ${new Set(db.contacts.map(c=>c.empresa)).size} empresas</p></div><div class="acts" style="margin:0"><button class="btn" data-a="impc">Importar</button><button class="btn" data-a="expc">Exportar</button><button class="btn pri" data-a="newc">Novo contacto</button></div></div>
   <input type="file" id="impf" accept=".csv,.txt,text/csv" hidden>
   <div class="tools"><input id="q" type="search" placeholder="Pesquisar por nome, empresa ou email" value="${esc(ui.q)}" aria-label="Pesquisar contactos"><select id="st" aria-label="Filtrar por estado"><option value="">Todos os estados</option>${STATUS.map(s=>`<option ${ui.st===s?'selected':''}>${s}</option>`).join('')}</select></div>
-  <div class="tw"><table><thead><tr><th>Nome</th><th>Empresa</th><th>Contacto</th><th>Cidade</th><th>Estado</th>${isMgr()?'<th>Responsável</th>':''}</tr></thead><tbody id="clist"></tbody></table></div>`;
+  <div id="selbar" class="pbar" hidden style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"></div>
+  <div class="tw"><table><thead><tr><th style="width:34px"><input type="checkbox" data-a="selall" aria-label="Selecionar todos os contactos da lista"></th><th>Nome</th><th>Empresa</th><th>Contacto</th><th>Cidade</th><th>Estado</th>${isMgr()?'<th>Responsável</th>':''}</tr></thead><tbody id="clist"></tbody></table></div>`;
+}
+function updSel(){
+  const b=$('#selbar');if(!b)return;
+  ui.sel=new Set([...ui.sel].filter(id=>db.contacts.some(c=>c.id===id)));
+  const n=ui.sel.size,com=[...ui.sel].filter(id=>waNum((db.contacts.find(c=>c.id===id)||{}).tel)).length;
+  b.hidden=!n;if(!n)return;
+  b.innerHTML=`<span><b>${n}</b> selecionado${n>1?'s':''}${com<n?' ('+com+' com WhatsApp válido)':''}</span><button type="button" class="btn pri" data-a="campgo" ${com?'':'disabled'}>Enviar WhatsApp</button><button type="button" class="btn" data-a="selclear">Limpar</button>`;
+  const all=$('input[data-a="selall"]');if(all)all.checked=!!(ui.shown&&ui.shown.length&&ui.shown.every(c=>ui.sel.has(c.id)));
+}
+function campaign(){
+  const rec=[...ui.sel].map(id=>db.contacts.find(c=>c.id===id)).filter(c=>c&&waNum(c.tel)).slice(0,50);
+  if(!rec.length)return;
+  const M=waModelos(),def=M[0];
+  const link=(c,t)=>'https://wa.me/'+waNum(c.tel)+'?text='+encodeURIComponent(waFill(t,c,null));
+  $('#modal').innerHTML=`<div class="ov" data-a="campclose"><div class="modal" id="camp" style="max-width:560px"><h2>WhatsApp para ${rec.length} contacto${rec.length>1?'s':''}</h2>
+  <div class="fg"><label class="w">Mensagem pronta<select id="cp_m">${M.map(m=>`<option value="${m.id}">${m.nome}</option>`).join('')}</select></label>
+  <label class="w">Texto (podes editar; {nome} troca-se pelo primeiro nome)<textarea id="cp_t" style="min-height:100px">${esc(def.txt)}</textarea></label></div>
+  <p class="m" style="font-size:12px;margin:8px 0">Abre uma conversa de cada vez e só envia quando carregares em enviar no WhatsApp. Envia apenas a quem já te conhece: o WhatsApp pode bloquear números que mandam a mesma mensagem a muita gente desconhecida.</p>
+  <div class="list" id="cp_list" style="max-height:260px;overflow:auto">${rec.map(c=>`<div class="it" data-cid="${c.id}"><div class="grow"><div class="t">${esc(c.nome)}</div><div class="m">${esc(c.tel)}</div></div><a class="btn pri" data-a="wacamp" data-id="${c.id}" target="_blank" rel="noopener" href="${link(c,def.txt)}">Abrir WhatsApp</a></div>`).join('')}</div>
+  <div class="acts"><span class="m" id="cp_n" style="margin-right:auto;font-size:13px">0 de ${rec.length} abertos</span><button type="button" class="btn" data-a="campclose">Fechar</button></div></div></div>`;
+  const t=$('#cp_t'),sl=$('#cp_m');
+  const upd=()=>rec.forEach(c=>{const a=document.querySelector('#cp_list [data-cid="'+c.id+'"] a');if(a)a.href=link(c,t.value)});
+  sl.addEventListener('change',()=>{t.value=M.find(m=>m.id===sl.value).txt;upd()});
+  t.addEventListener('input',upd);
 }
 function listContacts(){
   const q=ui.q.toLowerCase();
   const r=db.contacts.filter(c=>(!ui.st||c.estado===ui.st)&&(!q||(c.nome+c.empresa+c.email).toLowerCase().includes(q)));
-  $('#clist').innerHTML=r.length?r.map(c=>`<tr data-a="editc" data-id="${c.id}"><td><div style="display:flex;gap:10px;align-items:center"><span class="av">${esc(ini(c.nome))}</span><div><div class="t">${esc(c.nome)}</div><div class="m">${esc(c.cargo)}${c.origem?(c.cargo?' · ':'')+esc(c.origem):''}</div>${proxChip(c)}</div></div></td><td>${esc(c.empresa)}</td><td><div>${esc(c.email)}</div><div class="m">${esc(c.tel)}</div>${callHref(c)?`<a class="wa" data-a="call" data-id="${c.id}" href="${callHref(c)}" aria-label="Ligar a ${esc(c.nome)}">Ligar</a> `:''}${waNum(c.tel)?`<button type="button" class="wa" data-a="wa" data-id="${c.id}" aria-label="Enviar WhatsApp a ${esc(c.nome)}">${WA_ICO}WhatsApp</button>`:''}</td><td>${esc(c.cidade)}</td><td><span class="chip ${c.estado==='Cliente'?'good':c.estado==='Lead'?'':'mut'}">${c.estado}</span><div class="m" style="margin-top:4px">${c.ultimo_contacto?'Contactado em '+fdate(c.ultimo_contacto.slice(0,10)):'Ainda não contactado'}</div></td>${isMgr()?`<td class="m">${esc((c.responsavel||'').split('@')[0])}</td>`:''}</tr>`).join(''):'<tr><td colspan="6"><div class="empty">Nenhum contacto encontrado.</div></td></tr>';
+  ui.shown=r;
+  $('#clist').innerHTML=r.length?r.map(c=>`<tr data-a="editc" data-id="${c.id}"><td><input type="checkbox" data-a="sel" data-id="${c.id}" ${ui.sel.has(c.id)?'checked':''} aria-label="Selecionar ${esc(c.nome)}"></td><td><div style="display:flex;gap:10px;align-items:center"><span class="av">${esc(ini(c.nome))}</span><div><div class="t">${esc(c.nome)}</div><div class="m">${esc(c.cargo)}${c.origem?(c.cargo?' · ':'')+esc(c.origem):''}</div>${proxChip(c)}</div></div></td><td>${esc(c.empresa)}</td><td><div>${esc(c.email)}</div><div class="m">${esc(c.tel)}</div>${callHref(c)?`<a class="wa" data-a="call" data-id="${c.id}" href="${callHref(c)}" aria-label="Ligar a ${esc(c.nome)}">Ligar</a> `:''}${waNum(c.tel)?`<button type="button" class="wa" data-a="wa" data-id="${c.id}" aria-label="Enviar WhatsApp a ${esc(c.nome)}">${WA_ICO}WhatsApp</button>`:''}</td><td>${esc(c.cidade)}</td><td><span class="chip ${c.estado==='Cliente'?'good':c.estado==='Lead'?'':'mut'}">${c.estado}</span><div class="m" style="margin-top:4px">${c.ultimo_contacto?'Contactado em '+fdate(c.ultimo_contacto.slice(0,10)):'Ainda não contactado'}</div></td>${isMgr()?`<td class="m">${esc((c.responsavel||'').split('@')[0])}</td>`:''}</tr>`).join(''):'<tr><td colspan="7"><div class="empty">Nenhum contacto encontrado.</div></td></tr>';
+  updSel();
 }
 function vPipe(){
   const open=db.deals.filter(isOpen);
@@ -850,6 +877,17 @@ document.addEventListener('click',e=>{
   if(a==='mypw'){editPw();return}
   if(a==='newk'){newKey();return}
   if(a==='rmk'){if(!el.dataset.s){el.dataset.s=1;el.textContent='Confirmar';return}sb.from('api_chaves').delete().eq('id',id).then(r=>{if(r.error)toast('Não foi possível apagar',true);else{db.chaves=db.chaves.filter(x=>x.id!==id);render()}});return}
+  if(a==='sel'){if(el.checked)ui.sel.add(id);else ui.sel.delete(id);updSel();return}
+  if(a==='selall'){(ui.shown||[]).forEach(c=>{if(el.checked)ui.sel.add(c.id);else ui.sel.delete(c.id)});document.querySelectorAll('#clist input[data-a="sel"]').forEach(x=>x.checked=ui.sel.has(x.dataset.id));updSel();return}
+  if(a==='selclear'){ui.sel.clear();document.querySelectorAll('#clist input[data-a="sel"]').forEach(x=>x.checked=false);updSel();return}
+  if(a==='campgo'){campaign();return}
+  if(a==='campclose'){if(e.target===el||el.tagName==='BUTTON'){closeM();render()}return}
+  if(a==='wacamp'){
+    if(el.dataset.done)return;el.dataset.done=1;
+    const c=db.contacts.find(x=>x.id===id);
+    if(c){c.ultimo_contacto=new Date().toISOString();touch('contacts',c);const o={id:uid(),contacto_id:id,tipo:'whatsapp',resultado:'',nota:'Campanha de WhatsApp',criado_em:c.ultimo_contacto,responsavel:me.email};db.inter.unshift(o);touch('inter',o);save()}
+    setTimeout(()=>{el.textContent='Aberto ✓';el.classList.remove('pri');const n=document.querySelectorAll('#cp_list a[data-done]').length;$('#cp_n').textContent=n+' de '+document.querySelectorAll('#cp_list a').length+' abertos'},50);
+    return}
   if(a==='call'){ui.callPending=id;return}
   if(a==='logc'){closeM();logContact(id);return}
   if(a==='wa'){openWA(id,el.dataset.deal);return}
