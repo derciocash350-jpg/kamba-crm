@@ -1,6 +1,6 @@
 /* Kamba CRM: guarda a aplicação no aparelho para abrir sem internet.
    Os pedidos à base de dados (supabase.co) nunca passam por aqui. */
-const VERSAO = 'kamba-v8';
+const VERSAO = 'kamba-v9';
 const BASE = ['app.html', 'index.html', 'manifest.webmanifest', 'assets/supabase.js', 'assets/favicon.svg', 'assets/icon-192.png', 'assets/icon-512.png'];
 
 self.addEventListener('install', (e) => {

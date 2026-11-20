@@ -246,7 +246,7 @@ tbody tr{cursor:pointer}tbody tr:hover{background:var(--accent-soft)}
   <aside class="side">
     <div class="brand"><img src="assets/favicon.svg" width="30" height="30" alt="" style="border-radius:8px;flex:none">Kamba CRM</div>
     <nav id="nav"></nav>
-    <div class="who"><span id="who"></span><button class="btn" data-a="out">Sair</button><a class="link" href="index.html" style="text-decoration:none">Página de vendas</a></div>
+    <div class="who"><span id="who"></span><button class="btn" data-a="perfil">O meu perfil</button><button class="btn" data-a="out">Sair</button><a class="link" href="index.html" style="text-decoration:none">Página de vendas</a></div>
   </aside>
   <main id="main"></main>
   <nav id="tabbar" aria-label="Navegação"></nav>
@@ -309,7 +309,7 @@ const SB_URL='https://dywzfjrisvgkujamueql.supabase.co';
 const SB_KEY='sb_publishable_Ji27m-a-nNTJ2XQbdDkIgA_0scQq98v';
 const RECOVERY=/type=recovery/.test(location.hash);
 const sb=supabase.createClient(SB_URL,SB_KEY);
-const DB0=()=>({contacts:[],deals:[],tasks:[],team:[],pedidos:[],orcamentos:[],empresa:{},empresas:[],chaves:[],pedPlano:[],pend:[],instrucoes:'',inter:[],auto:[]});
+const DB0=()=>({contacts:[],deals:[],tasks:[],team:[],pedidos:[],orcamentos:[],empresa:{},empresas:[],chaves:[],pedPlano:[],pend:[],instrucoes:'',inter:[],auto:[],perfis:[]});
 let db=DB0();
 let me={email:'',papel:'',plataforma:false};
 const PLANOS={teste:'Teste grátis',essencial:'Essencial',equipa:'Equipa',empresa:'Empresa'};
@@ -341,7 +341,7 @@ const toRow={
   tasks:o=>({id:o.id,titulo:o.titulo,contacto_id:o.contacto||null,data:o.data,feito:!!o.feito,...rp(o)}),
   team:o=>({email:o.email,papel:o.papel}),
   orcamentos:o=>({id:o.id,titulo:o.titulo,negocio_id:o.negocio_id||null,cliente:o.cliente||{},itens:o.itens||[],iva_pct:o.iva_pct,validade:o.validade||null,condicoes:o.condicoes||'',estado:o.estado||'rascunho',...rp(o)}),
-  empresa:o=>({nome:o.nome||'',nif:o.nif||'',endereco:o.endereco||'',telefone:o.telefone||'',email:o.email||'',iva_pct:o.iva_pct,validade_dias:o.validade_dias,condicoes:o.condicoes||'',setor:o.setor||''})};
+  empresa:o=>({nome:o.nome||'',nif:o.nif||'',endereco:o.endereco||'',telefone:o.telefone||'',email:o.email||'',iva_pct:o.iva_pct,validade_dias:o.validade_dias,condicoes:o.condicoes||'',setor:o.setor||'',responsavel:o.responsavel||''})};
 const fromRow={
   deals:r=>({id:r.id,titulo:r.titulo,contacto:r.contacto_id||'',valor:Number(r.valor),etapa:r.etapa,fecho:r.fecho||'',notas:r.notas||'',responsavel:r.responsavel||''}),
   tasks:r=>({id:r.id,titulo:r.titulo,contacto:r.contacto_id||'',data:r.data,feito:r.feito,responsavel:r.responsavel||''}),
@@ -404,13 +404,14 @@ async function loadAll(){
     adm?sb.from('api_chaves').select('id,nome,prefixo,criado_em').order('criado_em',{ascending:false}):null,
     pl?sb.from('pedidos_demo').select('*').order('criado_em',{ascending:false}).limit(50):null,
     pl?sb.rpc('resumo_empresas'):null,
-    pl?sb.rpc('pedidos_plano_pendentes'):null];
-  const[c,d,t,e,o,em,cf,it,au,pp,k,p,r,q]=await Promise.all(Q);
+    pl?sb.rpc('pedidos_plano_pendentes'):null,
+    sb.from('perfis').select('*')];
+  const[c,d,t,e,o,em,cf,it,au,pp,k,p,r,q,pf]=await Promise.all(Q);
   const err=c.error||d.error||t.error||e.error||o.error||em.error;
   if(err){if(isNet(err)){offline=true;netBanner()}else toast('Erro ao carregar dados: '+err.message,true);return false}
   db.contacts=c.data;db.deals=d.data.map(fromRow.deals);db.tasks=t.data.map(fromRow.tasks);db.team=e.data;
   db.orcamentos=o.data.map(fromRow.orcamentos);db.empresa=(em.data&&em.data[0])||{};
-  db.inter=(it&&!it.error&&it.data)||[];db.auto=(au&&!au.error&&au.data)||[];
+  db.perfis=(pf&&!pf.error&&pf.data)||[];db.inter=(it&&!it.error&&it.data)||[];db.auto=(au&&!au.error&&au.data)||[];
   db.instrucoes=(cf&&!cf.error&&cf.data&&cf.data[0]&&cf.data[0].instrucoes_pagamento)||'';
   db.pedPlano=(pp&&!pp.error&&pp.data||[]).filter(x=>x.empresa_id===db.empresa.id);
   db.chaves=(db.empresa.plano==='empresa'&&k&&!k.error&&k.data)||[];
@@ -465,7 +466,7 @@ function moreSheet(){
   const B=(ic,t,a,x,c)=>`<button type="button" class="sb ${c||''}" data-a="${a}" ${x?'data-x="1" data-id="'+x+'"':''}>${IC(ic)}${t}</button>`;
   const v=n=>VIEWS.filter(x=>x[0]===n)[0];
   $('#modal').innerHTML=`<div class="ov" data-a="close"><div class="modal sheet"><h2 style="font-size:17px">${esc(me.email||'')}</h2><p class="m" style="margin:0 0 8px;font-size:13px">${esc(PAPEL[me.papel]||'')}${db.empresa&&db.empresa.nome?' · '+esc(db.empresa.nome):''}</p>`
-  +B(v('orcamentos')[2],'Orçamentos','go','orcamentos')+B(v('equipa')[2],'Equipa e definições','go','equipa')
+  +B('M16 11a4 4 0 10-8 0 4 4 0 008 0zM4 21c0-4 4-6 8-6s8 2 8 6','O meu perfil','perfil',1)+B(v('orcamentos')[2],'Orçamentos','go','orcamentos')+B(v('equipa')[2],'Equipa e definições','go','equipa')
   +B('M12 3v12m0 0l-4-4m4 4l4-4M5 21h14','Importar contactos (CSV)','impc',1)+B('M12 15V3m0 0L8 7m4-4l4 4M5 21h14','Exportar contactos','expc',1)+B('M12 15V3m0 0L8 7m4-4l4 4M5 21h14','Exportar negócios','expd',1)
   +`<a class="sb" href="index.html" style="text-decoration:none">${IC('M3 12l9-9 9 9M5 10v10h14V10')}Página de vendas</a>`
   +B('M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9','Terminar sessão','askout',1,'bad')+`</div></div>`;
@@ -599,7 +600,7 @@ function vTeam(){
   const plano=E.plano?`<span class="chip good">${esc(PLANOS[E.plano]||E.plano)}</span> `:'';
   return`<div class="head"><div><h1>Equipa</h1><p>${adm?'Cria o perfil de cada pessoa da tua equipa. Só vê os dados da tua empresa.':'Pessoas com acesso ao CRM da tua empresa.'}</p></div>${adm?'<button class="btn pri" data-a="newm">Criar perfil</button>':''}</div>
   ${adm?`<div class="m" style="margin:-4px 0 10px;font-size:13px">${plano}${db.team.length} ${lim==='sem limite'?'utilizadores':'utilizadores '+lim} no teu plano.</div>`:''}
-  <div class="card"><div class="list">${db.team.map(m=>{const self=m.email.toLowerCase()===me.email.toLowerCase();return`<div class="it"><span class="av">${esc(ini(m.email.split('@')[0]))}</span><div class="grow"><div class="t">${esc(m.email)}${self?' (tu)':''}</div></div>${adm&&!self?`<select data-a="role" data-id="${esc(m.email)}" aria-label="Papel de ${esc(m.email)}">${opt(Object.keys(PAPEL),m.papel,k=>[k,PAPEL[k]])}</select>${m.papel!=='admin'?`<button class="btn" data-a="pwm" data-id="${esc(m.email)}">Nova palavra-passe</button><button class="btn bad" data-a="rmm" data-id="${esc(m.email)}">Remover</button>`:''}`:`<span class="chip ${m.papel==='admin'?'good':'mut'}">${PAPEL[m.papel]||m.papel}</span>`}</div>`}).join('')}</div></div>
+  <div class="card"><div class="list">${db.team.map(m=>{const self=m.email.toLowerCase()===me.email.toLowerCase();return`<div class="it"><span class="av">${esc(ini(m.email.split('@')[0]))}</span><div class="grow"><div class="t">${esc(m.email)}${self?' (tu)':''}</div>${(()=>{const q=db.perfis.filter(x=>String(x.email).toLowerCase()===m.email.toLowerCase())[0];return q&&(q.nome||q.telefone)?`<div class="m">${esc([q.nome,q.telefone].filter(Boolean).join(' · '))}</div>`:''})()}</div>${adm&&!self?`<select data-a="role" data-id="${esc(m.email)}" aria-label="Papel de ${esc(m.email)}">${opt(Object.keys(PAPEL),m.papel,k=>[k,PAPEL[k]])}</select>${m.papel!=='admin'?`<button class="btn" data-a="pwm" data-id="${esc(m.email)}">Nova palavra-passe</button><button class="btn bad" data-a="rmm" data-id="${esc(m.email)}">Remover</button>`:''}`:`<span class="chip ${m.papel==='admin'?'good':'mut'}">${PAPEL[m.papel]||m.papel}</span>`}</div>`}).join('')}</div></div>
   <div class="card" style="margin-top:12px"><h2>Permissões</h2><div class="m" style="font-size:13px;line-height:1.6"><b>Administrador:</b> vê e altera tudo e gere a equipa.<br><b>Gestor:</b> vê e altera tudo, incluindo eliminar registos.<br><b>Vendedor:</b> só vê e altera os contactos, negócios e tarefas de que é responsável. Não elimina registos.</div></div>
 ${adm?planoCard():''}
   <div class="card" style="margin-top:12px"><h2>A minha conta</h2><div class="m" style="font-size:13px">${esc(me.email)}</div><div class="acts" style="justify-content:flex-start"><button class="btn" data-a="mypw">Mudar a minha palavra-passe</button><button class="btn" data-a="askout">Terminar sessão</button></div></div>
@@ -848,10 +849,29 @@ function showDoc(q){
   </article>`;
   $('#doc').hidden=false;$('#doc').scrollTop=0;
 }
+const myPerfil=()=>db.perfis.filter(x=>String(x.email).toLowerCase()===String(me.email).toLowerCase())[0]||{};
+const biOk=v=>/^\d{9}[A-Za-z]{2}\d{3}$/.test(String(v).replace(/\s/g,''));
+const telOk=v=>String(v).replace(/\D/g,'').length>=9;
+function chkPessoa(n,bi,tel){
+  if(String(n).trim().split(/\s+/).filter(Boolean).length<2)return'Indica o teu nome completo (nome e apelido).';
+  if(!biOk(bi))return'O BI deve ter 9 números, 2 letras e 3 números (por exemplo 000123456LA041).';
+  if(!telOk(tel))return'Indica um número de telefone válido.';
+  return''
+}
+function editPerfil(){
+  const P=myPerfil(),adm=me.papel==='admin';
+  modal('O meu perfil',inp('Nome completo','p_nome',P.nome,'text','w')+inp('Nº do BI','p_bi',P.bi)+inp('Telefone','p_tel',P.telefone,'tel')+`<label class="w">Email de acesso<input value="${esc(me.email)}" disabled></label><div class="w m" style="font-size:13px">${esc(PAPEL[me.papel]||'')}${db.empresa&&db.empresa.nome?' · '+esc(db.empresa.nome):''}</div><div class="w" style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn" data-a="mypw">Mudar palavra-passe</button>${adm?'<button type="button" class="btn" data-a="editemp">Dados da empresa</button>':''}</div>`,
+    g=>{const er=chkPessoa(g('p_nome'),g('p_bi'),g('p_tel'));if(er){toast(er,true);return false}
+      const btn=document.querySelector('#mf .pri');btn.disabled=true;
+      sb.rpc('guardar_perfil',{p_nome:g('p_nome'),p_bi:g('p_bi'),p_telefone:g('p_tel')}).then(r=>{if(r.error)throw new Error(r.error.message.replace(/^.*?:\s*/,''));
+        const row={email:me.email.toLowerCase(),nome:g('p_nome'),bi:g('p_bi').toUpperCase(),telefone:g('p_tel')};
+        db.perfis=db.perfis.filter(x=>String(x.email).toLowerCase()!==row.email).concat([row]);closeM();showApp();toast('Perfil guardado')}).catch(e=>{btn.disabled=false;toast('Não foi possível guardar: '+e.message,true)});
+      return false});
+}
 function editEmpresa(){
   const E=db.empresa||{};
-  modal('Dados da empresa',inp('Nome da empresa','e_nome',E.nome,'text','w')+inp('NIF','e_nif',E.nif)+inp('Telefone','e_tel',E.telefone,'tel')+inp('Endereço','e_end',E.endereco,'text','w')+inp('Email','e_mail',E.email,'email','w')+sel('Setor','e_set','<option value="">—</option>'+opt(Object.keys(SETORES),E.setor||'',k=>[k,SETORES[k].nome]),'w')+inp('IVA por defeito (%)','e_iva',E.iva_pct==null?14:E.iva_pct,'number')+inp('Validade do orçamento (dias)','e_val',E.validade_dias||15,'number')+`<label class="w">Condições por defeito<textarea id="e_cond">${esc(E.condicoes||'')}</textarea></label>`,
-    g=>{const o={nome:g('e_nome'),nif:g('e_nif'),telefone:g('e_tel'),endereco:g('e_end'),email:g('e_mail'),iva_pct:Math.min(100,Math.max(0,+g('e_iva')||0)),validade_dias:Math.min(365,Math.max(1,Math.round(+g('e_val')||15))),condicoes:g('e_cond'),setor:g('e_set')};
+  modal('Dados da empresa',inp('Nome da empresa','e_nome',E.nome,'text','w')+inp('Responsável da empresa','e_resp',E.responsavel,'text','w')+inp('NIF','e_nif',E.nif)+inp('Telefone','e_tel',E.telefone,'tel')+inp('Endereço','e_end',E.endereco,'text','w')+inp('Email','e_mail',E.email,'email','w')+sel('Setor','e_set','<option value="">—</option>'+opt(Object.keys(SETORES),E.setor||'',k=>[k,SETORES[k].nome]),'w')+inp('IVA por defeito (%)','e_iva',E.iva_pct==null?14:E.iva_pct,'number')+inp('Validade do orçamento (dias)','e_val',E.validade_dias||15,'number')+`<label class="w">Condições por defeito<textarea id="e_cond">${esc(E.condicoes||'')}</textarea></label>`,
+    g=>{const o={nome:g('e_nome'),responsavel:g('e_resp'),nif:g('e_nif'),telefone:g('e_tel'),endereco:g('e_end'),email:g('e_mail'),iva_pct:Math.min(100,Math.max(0,+g('e_iva')||0)),validade_dias:Math.min(365,Math.max(1,Math.round(+g('e_val')||15))),condicoes:g('e_cond'),setor:g('e_set')};
       db.empresa=Object.assign({},E,o);touch('empresa',db.empresa)});
 }
 
@@ -952,6 +972,7 @@ document.addEventListener('click',e=>{
   const a=el.dataset.a,id=el.dataset.id;
   if(el.dataset.x)closeM();
   if(a==='more'){moreSheet();return}
+  if(a==='perfil'){editPerfil();return}
   if(a==='go'){location.hash=id;return}
   if(a==='stg'){ui.stage=id;render();return}
   if(a==='close'){if(e.target===el||el.tagName==='BUTTON')closeM();return}
@@ -1025,12 +1046,13 @@ document.addEventListener('drop',e=>{const c=e.target.closest('.col');if(c&&drag
 document.addEventListener('dragend',()=>{dragId=null;document.querySelectorAll('.col.over').forEach(x=>x.classList.remove('over'))});
 
 /* autenticação */
+let AK={};
 function showAuth(mode='login',msg='',ok=false){
   $('#app').hidden=true;$('#auth').hidden=false;
   const su=mode==='signup';
   $('#auth').innerHTML=`<div class="authbox card"><div class="brand"><img src="assets/favicon.svg" width="30" height="30" alt="" style="border-radius:8px;flex:none">Kamba CRM</div>
-  <h1 style="font-size:22px">${su?'Criar a conta da tua empresa':'Entrar'}</h1>${su?'<p class="m" style="font-size:13px;margin:0 0 6px">Ficas como administrador e crias depois o perfil de cada pessoa da tua equipa.</p>':''}${msg?`<div class="msg ${ok?'ok':''}">${esc(msg)}</div>`:''}
-  <form id="af" data-mode="${mode}" novalidate>${su?'<label>Nome da empresa<input id="a_emp" type="text" autocomplete="organization" maxlength="160" required></label>':''}<label>Email<input id="a_em" type="email" autocomplete="email" required></label><label>Palavra-passe<input id="a_pw" type="password" autocomplete="${su?'new-password':'current-password'}" minlength="8" required></label><button class="btn pri" id="a_go">${su?'Criar conta':'Entrar'}</button></form>
+  <h1 style="font-size:22px">${su?'Criar a conta da tua empresa':'Entrar'}</h1>${su?'<p class="m" style="font-size:13px;margin:0 0 6px">Preenche os dados do responsável pela conta. Ficas como administrador e crias depois o perfil de cada pessoa da tua equipa.</p>':''}${msg?`<div class="msg ${ok?'ok':''}">${esc(msg)}</div>`:''}
+  <form id="af" data-mode="${mode}" novalidate>${su?`<label>Nome completo<input id="a_nome" type="text" autocomplete="name" maxlength="160" value="${esc(AK.nome||'')}" required></label><label>Nº do BI<input id="a_bi" type="text" autocapitalize="characters" maxlength="20" placeholder="000123456LA041" value="${esc(AK.bi||'')}" required></label><label>Telefone<input id="a_tel" type="tel" autocomplete="tel" maxlength="25" placeholder="+244 9__ ___ ___" value="${esc(AK.tel||'')}" required></label><label>Nome da empresa<input id="a_emp" type="text" autocomplete="organization" maxlength="160" value="${esc(AK.emp||'')}" required></label><label>Responsável da empresa<input id="a_resp" type="text" maxlength="160" placeholder="Deixa vazio se és tu" value="${esc(AK.resp||'')}"></label>`:''}<label>Email<input id="a_em" type="email" autocomplete="email" value="${esc(AK.em||'')}" required></label><label>Palavra-passe<input id="a_pw" type="password" autocomplete="${su?'new-password':'current-password'}" minlength="8" required></label><button class="btn pri" id="a_go">${su?'Criar conta':'Entrar'}</button></form>
   ${su?'':'<div class="m"><button class="link" data-a="forgot">Esqueci a palavra-passe</button></div>'}
   <div class="m">${su?'Já tens conta?':'Ainda não tens conta?'} <button class="link" data-a="authmode" data-m="${su?'login':'signup'}">${su?'Entrar':'Criar conta'}</button></div>
   ${su?'':'<div class="m" style="font-size:12px">Fazes parte de uma equipa? Usa o email e a palavra-passe que o teu administrador te deu.</div>'}
@@ -1069,23 +1091,26 @@ document.addEventListener('submit',async e=>{
   const{data:{session}}=await sb.auth.getSession();
   if(session)enter(session);else showAuth('login','Palavra-passe atualizada. Já podes entrar.',true);
 });
-function showCreateCompany(prefill=''){
+function showCreateCompany(m){
+  const M=typeof m==='string'?{empresa:m}:(m||{});
   $('#app').hidden=true;$('#auth').hidden=false;
   $('#auth').innerHTML=`<div class="authbox card"><div class="brand"><img src="assets/favicon.svg" width="30" height="30" alt="" style="border-radius:8px;flex:none">Kamba CRM</div>
   <h1 style="font-size:22px">Cria a tua empresa</h1><p class="m" style="font-size:13px;margin:0 0 6px">A conta ${esc(me.email)} ainda não pertence a nenhuma empresa. Se és membro de uma equipa, pede ao teu administrador para criar o teu perfil.</p><div id="cc_msg"></div>
-  <form id="cf" novalidate><label>Nome da empresa<input id="c_emp" type="text" maxlength="160" value="${esc(prefill)}" required></label><button class="btn pri" id="c_go">Criar empresa</button></form>
+  <form id="cf" novalidate><label>Nome completo<input id="c_nome" type="text" maxlength="160" value="${esc(M.nome||'')}" required></label><label>Nº do BI<input id="c_bi" type="text" autocapitalize="characters" maxlength="20" placeholder="000123456LA041" value="${esc(M.bi||'')}" required></label><label>Telefone<input id="c_tel" type="tel" maxlength="25" value="${esc(M.tel||'')}" required></label><label>Nome da empresa<input id="c_emp" type="text" maxlength="160" value="${esc(M.empresa||'')}" required></label><label>Responsável da empresa<input id="c_resp" type="text" maxlength="160" placeholder="Deixa vazio se és tu" value="${esc(M.responsavel&&M.responsavel!==M.nome?M.responsavel:'')}"></label><button class="btn pri" id="c_go">Criar empresa</button></form>
   <div class="m"><button class="link" data-a="out">Terminar sessão</button></div></div>`;
 }
-async function criarEmpresa(nome){
-  const{data,error}=await sb.rpc('criar_empresa',{p_nome:nome});
+async function criarEmpresa(m){
+  const{data,error}=await sb.rpc('criar_empresa',{p_nome:m.empresa,p_responsavel:m.responsavel||m.nome,p_nome_completo:m.nome,p_bi:m.bi,p_telefone:m.tel});
   if(error)throw new Error(error.message.replace(/^.*?:\s*/,''));
   return data;
 }
 document.addEventListener('submit',async e=>{
   if(e.target.id!=='cf')return;e.preventDefault();
-  const n=$('#c_emp').value.trim();if(n.length<2){$('#cc_msg').innerHTML='<div class="msg">Indica o nome da empresa.</div>';return}
+  const n=$('#c_emp').value.trim(),m={empresa:n,nome:$('#c_nome').value.trim(),bi:$('#c_bi').value.trim(),tel:$('#c_tel').value.trim(),responsavel:$('#c_resp').value.trim()};
+  const er=chkPessoa(m.nome,m.bi,m.tel)||(n.length<2?'Indica o nome da empresa.':'');if(er){$('#cc_msg').innerHTML='<div class="msg">'+esc(er)+'</div>';return}
+  if(!m.responsavel)m.responsavel=m.nome;
   $('#c_go').disabled=true;
-  try{await criarEmpresa(n);const{data:{session}}=await sb.auth.getSession();enter(session)}catch(err){$('#cc_msg').innerHTML='<div class="msg">'+esc(err.message)+'</div>';$('#c_go').disabled=false}
+  try{await criarEmpresa(m);const{data:{session}}=await sb.auth.getSession();enter(session)}catch(err){$('#cc_msg').innerHTML='<div class="msg">'+esc(err.message)+'</div>';$('#c_go').disabled=false}
 });
 function showNoAccess(){showCreateCompany('')}
 function useSnapshot(){
@@ -1094,10 +1119,11 @@ function useSnapshot(){
   db=Object.assign(DB0(),sn.db);me.papel=sn.me.papel;me.plataforma=!!sn.me.plataforma;offline=true;return true;
 }
 function showApp(){
-  $('#who').textContent=me.email+' ('+(PAPEL[me.papel]||me.papel).toLowerCase()+')';
+  $('#who').textContent=(myPerfil().nome?myPerfil().nome+' · ':'')+me.email+' ('+(PAPEL[me.papel]||me.papel).toLowerCase()+')';
   $('#auth').hidden=true;$('#app').hidden=false;netBanner();
   if(location.hash==='#entrar'||location.hash==='#criar')history.replaceState(null,'',location.pathname);
   route();
+  if(!offline&&!ui.askedPerfil&&me.papel&&!myPerfil().nome){ui.askedPerfil=1;setTimeout(()=>{if(!$('#modal').innerHTML&&!$('#app').hidden)editPerfil()},700)}
 }
 async function enter(session){
   me.email=session.user.email;
@@ -1114,9 +1140,9 @@ async function enter(session){
       papel=data;
       if(papel==='sem_sessao'){showAuth('login');return}
       if(papel==='sem_empresa'){
-        const nome=((session.user.user_metadata||{}).empresa||'').trim();
-        if(nome.length>=2){try{papel=await criarEmpresa(nome)}catch(err){showCreateCompany(nome);return}}
-        else{showCreateCompany('');return}
+        const md=session.user.user_metadata||{},m={empresa:String(md.empresa||'').trim(),nome:String(md.nome||'').trim(),bi:String(md.bi||'').trim(),tel:String(md.tel||'').trim(),responsavel:String(md.responsavel||'').trim()};
+        if(m.empresa.length>=2&&!chkPessoa(m.nome,m.bi,m.tel)){try{papel=await criarEmpresa(m)}catch(err){showCreateCompany(m);return}}
+        else{showCreateCompany(m);return}
       }
       me.plataforma=!pl.error&&pl.data===true;
     }
@@ -1132,12 +1158,15 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a="authmod
 document.addEventListener('submit',async e=>{
   if(e.target.id!=='af')return;e.preventDefault();
   const mode=e.target.dataset.mode,em=$('#a_em').value.trim(),pw=$('#a_pw').value,emp=mode==='signup'?$('#a_emp').value.trim():'';
+  if(mode==='signup'){AK={nome:$('#a_nome').value.trim(),bi:$('#a_bi').value.trim(),tel:$('#a_tel').value.trim(),emp,resp:$('#a_resp').value.trim(),em}}
   if(!em||pw.length<8){showAuth(mode,'Indica o email e uma palavra-passe com pelo menos 8 caracteres.');return}
+  if(mode==='signup'){const er=chkPessoa(AK.nome,AK.bi,AK.tel);if(er){showAuth(mode,er);return}}
   if(mode==='signup'&&emp.length<2){showAuth(mode,'Indica o nome da tua empresa.');return}
   $('#a_go').disabled=true;
   if(mode==='signup'){
-    const{data,error}=await sb.auth.signUp({email:em,password:pw,options:{emailRedirectTo:location.origin+location.pathname,data:{empresa:emp}}});
+    const{data,error}=await sb.auth.signUp({email:em,password:pw,options:{emailRedirectTo:location.origin+location.pathname,data:{empresa:emp,responsavel:AK.resp||AK.nome,nome:AK.nome,bi:AK.bi,tel:AK.tel}}});
     if(error){showAuth('signup',error.message);return}
+    AK={};
     if(data.session){enter(data.session);return}
     showAuth('login','Enviámos um email de confirmação para '+em+'. Abre o link e depois entra aqui.',true);
   }else{
