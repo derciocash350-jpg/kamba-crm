@@ -250,7 +250,7 @@ const SB_URL='https://dywzfjrisvgkujamueql.supabase.co';
 const SB_KEY='sb_publishable_Ji27m-a-nNTJ2XQbdDkIgA_0scQq98v';
 const RECOVERY=/type=recovery/.test(location.hash);
 const sb=supabase.createClient(SB_URL,SB_KEY);
-const DB0=()=>({contacts:[],deals:[],tasks:[],team:[],pedidos:[],orcamentos:[],empresa:{},empresas:[],chaves:[],pedPlano:[],pend:[],instrucoes:'',inter:[]});
+const DB0=()=>({contacts:[],deals:[],tasks:[],team:[],pedidos:[],orcamentos:[],empresa:{},empresas:[],chaves:[],pedPlano:[],pend:[],instrucoes:'',inter:[],auto:[]});
 let db=DB0();
 let me={email:'',papel:'',plataforma:false};
 const PLANOS={teste:'Teste grátis',essencial:'Essencial',equipa:'Equipa',empresa:'Empresa'};
@@ -282,7 +282,7 @@ const toRow={
   tasks:o=>({id:o.id,titulo:o.titulo,contacto_id:o.contacto||null,data:o.data,feito:!!o.feito,...rp(o)}),
   team:o=>({email:o.email,papel:o.papel}),
   orcamentos:o=>({id:o.id,titulo:o.titulo,negocio_id:o.negocio_id||null,cliente:o.cliente||{},itens:o.itens||[],iva_pct:o.iva_pct,validade:o.validade||null,condicoes:o.condicoes||'',estado:o.estado||'rascunho',...rp(o)}),
-  empresa:o=>({nome:o.nome||'',nif:o.nif||'',endereco:o.endereco||'',telefone:o.telefone||'',email:o.email||'',iva_pct:o.iva_pct,validade_dias:o.validade_dias,condicoes:o.condicoes||''})};
+  empresa:o=>({nome:o.nome||'',nif:o.nif||'',endereco:o.endereco||'',telefone:o.telefone||'',email:o.email||'',iva_pct:o.iva_pct,validade_dias:o.validade_dias,condicoes:o.condicoes||'',setor:o.setor||''})};
 const fromRow={
   deals:r=>({id:r.id,titulo:r.titulo,contacto:r.contacto_id||'',valor:Number(r.valor),etapa:r.etapa,fecho:r.fecho||'',notas:r.notas||'',responsavel:r.responsavel||''}),
   tasks:r=>({id:r.id,titulo:r.titulo,contacto:r.contacto_id||'',data:r.data,feito:r.feito,responsavel:r.responsavel||''}),
@@ -307,7 +307,7 @@ function toast(msg,bad){const t=$('#toast');t.textContent=msg;t.className=bad?'b
 async function save(){
   if(saving)return;saving=true;
   try{
-    let quotes=false;
+    let quotes=false,recarregar=false;
     while(queue.length){
       const j=queue[0];let n=1;
       if(j.op==='up'&&(j.k==='contacts'||j.k==='deals'||j.k==='tasks')){while(n<200&&queue[n]&&queue[n].op==='up'&&queue[n].k===j.k)n++}
@@ -317,11 +317,13 @@ async function save(){
         queue=[];persistQ();toast('Não foi possível guardar: '+r.error.message,true);await loadAll();render();return;
       }
       if(j.k==='orcamentos')quotes=true;
+      if(j.k==='deals'&&queue.slice(0,n).some(x=>x.row&&(x.row.etapa==='prop'||x.row.etapa==='ganho')))recarregar=true;
       queue.splice(0,n);persistQ();
     }
     if(offline){offline=false;toast('Ligação recuperada. Alterações enviadas.')}
     netBanner();
     if(quotes){await reloadQuotes();render()}
+    if(recarregar&&!queue.length&&await loadAll())render();
     snap();
   }finally{saving=false}
 }
@@ -338,17 +340,18 @@ async function loadAll(){
     sb.from('empresas').select('*').limit(1),
     sb.from('plataforma_config').select('instrucoes_pagamento').limit(1),
     sb.from('interacoes').select('*').order('criado_em',{ascending:false}).limit(300),
+    adm?sb.from('automacoes').select('*'):null,
     adm?sb.from('pedidos_plano').select('*').order('criado_em',{ascending:false}).limit(20):null,
     adm?sb.from('api_chaves').select('id,nome,prefixo,criado_em').order('criado_em',{ascending:false}):null,
     pl?sb.from('pedidos_demo').select('*').order('criado_em',{ascending:false}).limit(50):null,
     pl?sb.rpc('resumo_empresas'):null,
     pl?sb.rpc('pedidos_plano_pendentes'):null];
-  const[c,d,t,e,o,em,cf,it,pp,k,p,r,q]=await Promise.all(Q);
+  const[c,d,t,e,o,em,cf,it,au,pp,k,p,r,q]=await Promise.all(Q);
   const err=c.error||d.error||t.error||e.error||o.error||em.error;
   if(err){if(isNet(err)){offline=true;netBanner()}else toast('Erro ao carregar dados: '+err.message,true);return false}
   db.contacts=c.data;db.deals=d.data.map(fromRow.deals);db.tasks=t.data.map(fromRow.tasks);db.team=e.data;
   db.orcamentos=o.data.map(fromRow.orcamentos);db.empresa=(em.data&&em.data[0])||{};
-  db.inter=(it&&!it.error&&it.data)||[];
+  db.inter=(it&&!it.error&&it.data)||[];db.auto=(au&&!au.error&&au.data)||[];
   db.instrucoes=(cf&&!cf.error&&cf.data&&cf.data[0]&&cf.data[0].instrucoes_pagamento)||'';
   db.pedPlano=(pp&&!pp.error&&pp.data||[]).filter(x=>x.empresa_id===db.empresa.id);
   db.chaves=(db.empresa.plano==='empresa'&&k&&!k.error&&k.data)||[];
@@ -361,8 +364,15 @@ async function sync(){
   if(queue.length)await save();
   if(!queue.length&&!$('#modal').innerHTML&&!$('#doc').innerHTML.includes('class="doc"')){if(await loadAll())render()}
 }
-async function loadSamples(){
-  const s=seed(),m={};
+function seedSetor(id){
+  const S=SETORES[id];if(!S||!S.c)return null;
+  const O=['WhatsApp','Indicação','Site'];
+  return{contacts:S.c.map(([nome,empresa,cargo,tel,cidade,estado],i)=>({id:'c'+i,nome,empresa,cargo,email:'',tel,cidade,estado,notas:'',origem:O[i%3]})),
+    deals:S.d.map(([titulo,ci,valor,etapa,f],i)=>({id:'d'+i,titulo,contacto:'c'+ci,valor,etapa,fecho:off(f),notas:''})),
+    tasks:S.t.map(([titulo,ci,dias],i)=>({id:'t'+i,titulo,contacto:'c'+ci,data:off(dias),feito:false}))};
+}
+async function loadSamples(setor){
+  const s=(setor&&seedSetor(setor))||seed(),m={};
   s.contacts.forEach(c=>{const n=uid();m[c.id]=n;c.id=n});
   s.deals.forEach(d=>{d.id=uid();d.contacto=m[d.contacto]||''});
   s.tasks.forEach(t=>{t.id=uid();t.contacto=m[t.contacto]||''});
@@ -392,6 +402,36 @@ function render(){
 function route(){const h=location.hash.slice(1);ui.view=VIEWS.some(v=>v[0]===h)?h:'dashboard';render()}
 addEventListener('hashchange',route);
 
+function autoCard(){
+  const g=t=>db.auto.find(x=>x.tipo===t)||{ativa:false,dias:t==='ganho_tarefa'?7:3};
+  const row=(t,txt)=>{const a=g(t);return`<div class="it"><label class="grow" style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" data-a="auto" data-id="${t}" ${a.ativa?'checked':''}> ${txt}</label><select data-a="autod" data-id="${t}" aria-label="Dias">${[1,2,3,5,7,14].map(n=>`<option value="${n}" ${n===a.dias?'selected':''}>daqui a ${n} dia${n>1?'s':''}</option>`).join('')}</select></div>`};
+  return`<div class="card" style="margin-top:12px"><h2>Automações</h2><p class="m" style="font-size:13px;margin:0 0 6px">Poupam trabalho: a tarefa é criada sozinha para o responsável do negócio.</p><div class="list">${row('proposta_tarefa','Quando um negócio passa a Proposta, criar a tarefa "Seguimento da proposta"')}${row('ganho_tarefa','Quando um negócio é ganho, criar a tarefa "Pós-venda"')}</div></div>`;
+}
+function capturaSnippet(){
+  const k=(db.empresa||{}).chave_captura||'';
+  return`<form id="kamba-form">
+  <input name="nome" placeholder="O seu nome" required>
+  <input name="tel" placeholder="Telefone ou WhatsApp">
+  <input name="email" type="email" placeholder="Email">
+  <textarea name="mensagem" placeholder="Em que podemos ajudar?"></textarea>
+  <input name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px" aria-hidden="true">
+  <button type="submit">Enviar</button>
+  <p id="kamba-msg"></p>
+</form>
+<script>
+document.getElementById("kamba-form").addEventListener("submit",async function(e){
+  e.preventDefault();var m=document.getElementById("kamba-msg");
+  var d=Object.fromEntries(new FormData(e.target));d.chave="${k}";
+  try{var r=await fetch("${SB_URL}/functions/v1/captura",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(d)});
+  m.textContent=r.ok?"Obrigado! Entraremos em contacto em breve.":"Não foi possível enviar. Tente outra vez.";if(r.ok)e.target.reset()}
+  catch(x){m.textContent="Sem ligação. Tente outra vez."}
+});
+<\/script>`;
+}
+function capturaCard(){
+  const sn=capturaSnippet();
+  return`<div class="card" style="margin-top:12px"><h2>Formulário para o teu site</h2><p class="m" style="font-size:13px;margin:0 0 8px">Cola este código no site da tua empresa. Cada pedido entra aqui como contacto, com a origem "Site", e fica para contactar hoje.</p><textarea readonly rows="8" style="width:100%;font-family:monospace;font-size:12px" onclick="this.select()">${esc(sn)}</textarea><div class="acts" style="justify-content:flex-start"><button class="btn" data-a="copycred" data-t="${esc(sn)}">Copiar código</button><button class="btn bad" data-a="renkey">Renovar chave</button></div><p class="m" style="font-size:12px;margin:6px 0 0">Se o formulário receber spam, renova a chave e cola o código novo no site.</p></div>`;
+}
 function planoCard(){
   const E=db.empresa||{},i=planoInfo();
   const est={pendente:['warn','Em análise'],aprovado:['good','Aprovado'],recusado:['bad','Recusado']};
@@ -485,6 +525,7 @@ function vTeam(){
   <div class="card" style="margin-top:12px"><h2>Permissões</h2><div class="m" style="font-size:13px;line-height:1.6"><b>Administrador:</b> vê e altera tudo e gere a equipa.<br><b>Gestor:</b> vê e altera tudo, incluindo eliminar registos.<br><b>Vendedor:</b> só vê e altera os contactos, negócios e tarefas de que é responsável. Não elimina registos.</div></div>
 ${adm?planoCard():''}
   <div class="card" style="margin-top:12px"><h2>A minha conta</h2><div class="m" style="font-size:13px">${esc(me.email)}</div><div class="acts" style="justify-content:flex-start"><button class="btn" data-a="mypw">Mudar a minha palavra-passe</button><button class="btn" data-a="askout">Terminar sessão</button></div></div>
+  ${adm?autoCard()+capturaCard():''}
   ${adm?`<div class="card" style="margin-top:12px"><h2>Dados da empresa</h2><p class="m" style="font-size:13px;margin:0 0 8px">Aparecem no topo dos orçamentos.</p>${E.nome?`<div style="font-size:14px"><b>${esc(E.nome)}</b>${E.nif?' · NIF '+esc(E.nif):''}<div class="m">${esc([E.endereco,E.telefone,E.email].filter(Boolean).join(' · '))}</div><div class="m">IVA ${E.iva_pct}% · validade ${E.validade_dias} dias</div></div>`:'<div class="m">Ainda por preencher.</div>'}<div class="acts" style="justify-content:flex-start"><button class="btn" data-a="editemp">${E.nome?'Editar':'Preencher'}</button></div></div>`:''}
   ${adm?`<div class="card" style="margin-top:12px"><h2>API</h2>${E.plano==='empresa'?`<p class="m" style="font-size:13px;margin:0 0 8px">Para ligar outros sistemas aos dados da tua empresa. Envia a chave no cabeçalho <code>x-api-key</code>. Nunca a coloques no site.</p>${db.chaves.length?`<div class="list">${db.chaves.map(k=>`<div class="it"><div class="grow"><div class="t">${esc(k.nome||'Chave')}</div><div class="m">${esc(k.prefixo)}… · criada em ${new Date(k.criado_em).toLocaleDateString('pt-PT')}</div></div><button class="btn bad" data-a="rmk" data-id="${esc(k.id)}">Apagar</button></div>`).join('')}</div>`:''}<div class="acts" style="justify-content:flex-start"><button class="btn" data-a="newk">Criar chave de API</button></div><div class="tw"><pre style="margin:8px 0 0;padding:12px;font-size:12px;white-space:pre;overflow-x:auto">curl ${esc(api)}/contactos \\\n  -H "x-api-key: A_TUA_CHAVE"</pre></div><p class="m" style="font-size:12px;margin:8px 0 0">Recursos: contactos, negocios e tarefas. Métodos: GET, POST, PATCH e DELETE.</p>`:'<p class="m" style="font-size:13px;margin:0">A API está disponível no plano Empresa.</p>'}</div>`:''}
   ${me.plataforma?`${platCard()}<div class="card" style="margin-top:12px"><h2>Plataforma · empresas</h2><div class="list">${db.empresas.map(x=>`<div class="it"><div class="grow"><div class="t">${esc(x.nome)}</div><div class="m">${x.utilizadores} utilizador(es) · desde ${new Date(x.criado_em).toLocaleDateString('pt-PT')}</div></div><select data-a="plano" data-id="${esc(x.id)}" aria-label="Plano de ${esc(x.nome)}">${opt(Object.keys(PLANOS),x.plano,k=>[k,PLANOS[k]])}</select></div>`).join('')||'<div class="m">Ainda não há empresas.</div>'}</div></div>
@@ -492,6 +533,30 @@ ${adm?planoCard():''}
 }
 const WA_ICO='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 01-12.4 7.4L3 20.5l1.7-5.4A8.4 8.4 0 1121 11.5z"/></svg>';
 function waNum(t){let d=String(t||'').replace(/\D/g,'');if(d.startsWith('00'))d=d.slice(2);if(d.length===9&&d[0]==='9')d='244'+d;return d.length>=11&&d.length<=15?d:''}
+const SETORES={
+ comercio:{nome:'Loja / comércio',wa:{primeiro:'Olá {nome}, tudo bem? Sou {eu}{minha_empresa}. Temos novidades que podem interessar-lhe. Posso enviar o catálogo e os preços?',seguimento:'Olá {nome}, passo para saber se já decidiu sobre a encomenda{negocio}. Temos stock disponível e fazemos entregas.',proposta:'Olá {nome}, segue o orçamento{negocio}{valor}. Confirmando o pagamento, preparamos a entrega.',obrigado:'Olá {nome}, obrigado pela compra! Se tiver algum problema com o produto, fale connosco.'},
+  c:[['Maria Fernandes','Cantina Esperança','Proprietária','923 400 111','Luanda','Cliente'],['Carlos Bento','Papelaria Central','Gerente','924 500 222','Huambo','Lead'],['Luísa Domingos','Boutique Elegância','Dona','925 600 333','Benguela','Lead']],
+  d:[['Encomenda de 200 caixas de bebidas',0,380000,'prop',7],['Fornecimento mensal de material de escritório',1,150000,'qual',20],['Coleção nova de roupa',2,520000,'novo',30]],
+  t:[['Enviar catálogo à Papelaria Central',1,0],['Confirmar entrega à Cantina Esperança',0,2]]},
+ saude:{nome:'Clínica / saúde',wa:{primeiro:'Olá {nome}, tudo bem? Sou {eu}{minha_empresa}. Posso ajudar a marcar a sua consulta ou exame?',seguimento:'Olá {nome}, passo para lembrar a sua marcação{negocio}. Se precisar de remarcar, diga-nos.',proposta:'Olá {nome}, seguem o plano de tratamento e os valores{negocio}{valor}. Qualquer dúvida, estamos à disposição.',obrigado:'Olá {nome}, foi um prazer atendê-lo(a). Se tiver alguma dúvida depois da consulta, fale connosco.'},
+  c:[['Ana Paula Gomes','Particular','Paciente','912 440 118','Luanda','Lead'],['Rui Tavares','Segura Lda','Recursos Humanos','923 770 880','Luanda','Lead'],['Teresa Luvualu','Particular','Paciente','926 330 459','Luanda','Cliente']],
+  d:[['Plano de saúde para 25 funcionários',1,1200000,'prop',12],['Pacote de check-up anual',2,180000,'qual',15],['Tratamento dentário completo',0,450000,'novo',30]],
+  t:[['Ligar para confirmar a consulta da Teresa',2,0],['Enviar proposta de plano empresarial',1,2]]},
+ construcao:{nome:'Construção e obras',wa:{primeiro:'Olá {nome}, tudo bem? Sou {eu}{minha_empresa}. Podemos marcar uma visita ao local para preparar o orçamento da sua obra?',seguimento:'Olá {nome}, passo para saber se já analisou o orçamento da obra{negocio}. Podemos ajustar o âmbito ou os prazos, se for preciso.',proposta:'Olá {nome}, segue o orçamento da obra{negocio}{valor}, com prazos e condições de pagamento por fases.',obrigado:'Olá {nome}, obrigado pela confiança na nossa equipa. Vamos manter o contacto durante toda a obra.'},
+  c:[['Joaquim Neto','Particular','Proprietário','931 560 774','Benguela','Lead'],['Sónia Mendes','Promotora Kikolo','Gestora de projetos','924 810 365','Luanda','Cliente'],['Fernando Cassoma','Particular','Proprietário','925 120 640','Lubango','Lead']],
+  d:[['Moradia T3 em Benguela',0,18500000,'neg',25],['Reabilitação de armazém',1,6200000,'prop',14],['Muro e portão',2,850000,'novo',30]],
+  t:[['Visita ao local da moradia',0,1],['Enviar orçamento do armazém',1,3]]},
+ educacao:{nome:'Escola / formação',wa:{primeiro:'Olá {nome}, tudo bem? Sou {eu}{minha_empresa}. Posso enviar informações sobre cursos, horários e propinas?',seguimento:'Olá {nome}, passo para saber se ainda tem interesse na matrícula{negocio}. As vagas são limitadas.',proposta:'Olá {nome}, seguem os valores de matrícula e propinas{negocio}{valor}. Posso ajudar com a inscrição?',obrigado:'Olá {nome}, bem-vindo(a)! Obrigado por escolher a nossa escola.'},
+  c:[['Dália Sebastião','Particular','Encarregada de educação','923 640 211','Luanda','Lead'],['Kuzola Lda','Kuzola Lda','Recursos Humanos','924 330 705','Luanda','Lead'],['Paulo Chivela','Particular','Aluno','912 900 463','Huambo','Cliente']],
+  d:[['Matrícula do ano letivo',0,120000,'qual',10],['Curso de inglês para a equipa',1,900000,'prop',20],['Curso de informática',2,60000,'novo',30]],
+  t:[['Ligar à Dália sobre a matrícula',0,0],['Enviar horários do curso de inglês',1,2]]},
+ imobiliaria:{nome:'Imobiliária',wa:{primeiro:'Olá {nome}, tudo bem? Sou {eu}{minha_empresa}. Que tipo de imóvel procura e em que zona?',seguimento:'Olá {nome}, passo para saber o que achou do imóvel{negocio}. Posso marcar outra visita?',proposta:'Olá {nome}, segue a proposta do imóvel{negocio}{valor}, com as condições de pagamento.',obrigado:'Olá {nome}, parabéns pelo novo imóvel! Estamos à disposição para o que precisar.'},
+  c:[['Mateus Cardoso','Particular','Comprador','923 215 970','Luanda','Lead'],['Eduarda Pinto','Particular','Proprietária','924 650 318','Luanda','Cliente'],['Grupo Bela Vista','Grupo Bela Vista','Investidor','925 780 142','Luanda','Lead']],
+  d:[['Venda de apartamento T2 no Talatona',0,42000000,'neg',30],['Arrendamento de loja na Maianga',1,450000,'prop',10],['Terreno em Viana',2,15000000,'qual',45]],
+  t:[['Marcar visita ao T2 com o Mateus',0,1],['Pedir documentos à Eduarda',1,3]]},
+ servicos:{nome:'Serviços / outro',wa:null}
+};
+const waModelos=()=>{const w=(SETORES[(db.empresa||{}).setor]||{}).wa;return w?WA_MODELOS.map(m=>({...m,txt:w[m.id]||m.txt})):WA_MODELOS};
 const WA_MODELOS=[
  {id:'primeiro',nome:'Primeiro contacto',txt:'Olá {nome}, tudo bem? Sou {eu}{minha_empresa}. Gostava de perceber como podemos ajudar a sua empresa. Podemos falar um momento?'},
  {id:'seguimento',nome:'Seguimento',txt:'Olá {nome}, passo para saber se já teve oportunidade de ver a nossa proposta{negocio}. Fico à disposição para qualquer dúvida.'},
@@ -509,15 +574,15 @@ function openWA(cid,did){
   const d=db.deals.find(x=>x.id===did)||null,num=waNum(c.tel);
   const def=d?(d.etapa==='prop'?'proposta':'seguimento'):'primeiro';
   const link=t=>'https://wa.me/'+num+'?text='+encodeURIComponent(t);
-  const first=waFill(WA_MODELOS.find(m=>m.id===def).txt,c,d);
+  const first=waFill(waModelos().find(m=>m.id===def).txt,c,d);
   $('#modal').innerHTML=`<div class="ov" data-a="close"><div class="modal" id="wam"><h2>WhatsApp para ${esc(c.nome)}</h2>
   ${num?'':'<div class="m" style="margin-bottom:10px;color:var(--bad)">Este contacto não tem um telefone válido. Edita o contacto e indica o número, por exemplo +244 923 000 000.</div>'}
-  <div class="fg"><label class="w">Mensagem pronta<select id="wa_m">${WA_MODELOS.map(m=>`<option value="${m.id}" ${m.id===def?'selected':''}>${m.nome}</option>`).join('')}</select></label>
+  <div class="fg"><label class="w">Mensagem pronta<select id="wa_m">${waModelos().map(m=>`<option value="${m.id}" ${m.id===def?'selected':''}>${m.nome}</option>`).join('')}</select></label>
   <label class="w">Texto (podes editar)<textarea id="wa_t" style="min-height:110px">${esc(first)}</textarea></label></div>
   <p class="m" style="margin-top:10px;font-size:12px">Abre o WhatsApp com a mensagem pronta. Só é enviada quando carregares em enviar no WhatsApp.</p>
   <div class="acts"><button type="button" class="btn" data-a="close">Cancelar</button>${num?`<a class="btn pri" id="wa_go" data-a="wago" data-id="${c.id}" target="_blank" rel="noopener" href="${link(first)}">Abrir no WhatsApp</a>`:''}</div></div></div>`;
   const t=$('#wa_t'),sl=$('#wa_m'),go=$('#wa_go');
-  sl.addEventListener('change',()=>{t.value=waFill(WA_MODELOS.find(m=>m.id===sl.value).txt,c,d);if(go)go.href=link(t.value)});
+  sl.addEventListener('change',()=>{t.value=waFill(waModelos().find(m=>m.id===sl.value).txt,c,d);if(go)go.href=link(t.value)});
   t.addEventListener('input',()=>{if(go)go.href=link(t.value)});
 }
 function saudacao(){
@@ -544,8 +609,15 @@ function histHTML(cid){
   if(!h.length)return'';
   return`<div class="w" style="grid-column:1/-1"><div class="m" style="font-size:12px;margin-bottom:4px"><b>Histórico</b></div>${h.map(i=>`<div class="m" style="font-size:12px;line-height:1.5">${fdate(String(i.criado_em).slice(0,10))} · ${TIPOS[i.tipo]||i.tipo}${i.resultado?' · '+RESULT[i.resultado]:''}${i.nota?' · '+esc(i.nota):''}${i.responsavel?' ('+esc(i.responsavel.split('@')[0])+')':''}</div>`).join('')}</div>`;
 }
+function pickSetor(){
+  const vazio=!db.contacts.length&&!db.deals.length&&!db.tasks.length;
+  modal('O teu setor',sel('Em que setor trabalhas','s_set','<option value="">Escolher…</option>'+opt(Object.keys(SETORES),(db.empresa||{}).setor||'',k=>[k,SETORES[k].nome]),'w')+`<div class="m w" style="font-size:12px">As mensagens de WhatsApp prontas passam a falar a linguagem do teu setor.</div>`+(vazio?'<label class="w" style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" id="s_ex" checked> Carregar exemplos deste setor para ver como funciona</label>':''),
+    g=>{const k=g('s_set');if(!k){reqName(()=>'','s_set','Escolhe o setor');return false}
+      db.empresa=Object.assign({},db.empresa,{setor:k});touch('empresa',db.empresa);
+      const ex=$('#s_ex');if(ex&&ex.checked)setTimeout(()=>loadSamples(k),0)});
+}
 function vDash(){
-  if(!db.contacts.length&&!db.deals.length&&!db.tasks.length)return`<div class="head"><div><h1>Painel</h1><p>O CRM ainda está vazio.</p></div></div><div class="card empty"><p>Cria o primeiro contacto ou carrega dados de exemplo para ver como funciona.</p><div class="acts" style="justify-content:center"><button class="btn pri" data-a="newc">Novo contacto</button><button class="btn" data-a="samples">Carregar exemplos</button></div></div>`;
+  if(!db.contacts.length&&!db.deals.length&&!db.tasks.length)return`<div class="head"><div><h1>Painel</h1><p>O CRM ainda está vazio.</p></div></div><div class="card empty"><p>Cria o primeiro contacto ou carrega dados de exemplo para ver como funciona.</p><div class="acts" style="justify-content:center"><button class="btn pri" data-a="newc">Novo contacto</button><button class="btn" data-a="${me.papel==='admin'?'setor':'samples'}">${me.papel==='admin'?'Escolher o meu setor':'Carregar exemplos'}</button></div></div>`;
   const open=db.deals.filter(isOpen);
   const fc=open.reduce((a,d)=>a+d.valor*stage(d.etapa).p,0);
   const won=db.deals.filter(d=>d.etapa==='ganho'),lost=db.deals.filter(d=>d.etapa==='perdido');
@@ -557,6 +629,7 @@ function vDash(){
   const dev=db.contacts.filter(c=>c.proximo_contacto&&c.proximo_contacto<=today()).sort((a,b)=>a.proximo_contacto.localeCompare(b.proximo_contacto));
   const orc={};db.contacts.forEach(c=>{const k=c.origem||'Sem origem';orc[k]=(orc[k]||0)+1});
   const ors=Object.entries(orc).sort((a,b)=>b[1]-a[1]),omx=Math.max(1,...ors.map(x=>x[1]));
+  const parados=db.contacts.filter(c=>c.estado==='Lead'&&!c.proximo_contacto&&(c.ultimo_contacto||c.criado_em)&&Date.now()-new Date(c.ultimo_contacto||c.criado_em).getTime()>7*DAY).sort((a,b)=>String(a.ultimo_contacto||a.criado_em).localeCompare(String(b.ultimo_contacto||b.criado_em)));
   const nt=db.tasks.filter(t=>!t.feito).sort((a,b)=>a.data.localeCompare(b.data)).slice(0,5);
   return`<div class="head"><div><h1>${saudacao()}</h1><p>${isMgr()?'Resumo das vendas':'Os teus números'} em ${new Date().toLocaleDateString('pt-PT',{day:'numeric',month:'long',year:'numeric'})}</p></div></div>
   <div class="kpis">
@@ -573,7 +646,8 @@ function vDash(){
   <div class="grid2" style="margin-top:12px">
     <div class="card"><h2>Para contactar hoje</h2><div class="list">${dev.length?dev.slice(0,6).map(c=>`<div class="it"><div class="grow"><div class="t">${esc(c.nome)}</div><div class="m">${esc(c.empresa||'')}${c.empresa&&c.tel?' · ':''}${esc(c.tel||'')}</div></div>${proxChip(c)}${callHref(c)?`<a class="wa" data-a="call" data-id="${c.id}" href="${callHref(c)}">Ligar</a>`:''}${waNum(c.tel)?`<button type="button" class="wa" data-a="wa" data-id="${c.id}">${WA_ICO}WhatsApp</button>`:''}<button type="button" class="btn" data-a="logc" data-id="${c.id}">Registar</button></div>`).join('')+(dev.length>6?`<div class="m" style="padding:8px 0">e mais ${dev.length-6} contacto(s)</div>`:''):'<div class="empty">Ninguém para contactar hoje. Define a data de próximo contacto em cada cliente.</div>'}</div></div>
     <div class="card"><h2>Contactos por origem</h2><div class="fun">${ors.map(([k,n])=>`<div class="r"><div><div class="t">${esc(k)}</div></div><div class="bar"><b style="width:${Math.round(100*n/omx)}%"></b></div><div class="num">${n}</div></div>`).join('')||'<div class="empty">Sem contactos ainda.</div>'}</div></div>
-  </div>`;
+  </div>
+  ${parados.length?`<div class="card" style="margin-top:12px"><h2>Leads parados há mais de 7 dias</h2><div class="list">${parados.slice(0,5).map(c=>`<div class="it"><div class="grow"><div class="t">${esc(c.nome)}</div><div class="m">${esc(c.empresa||'')}${c.origem?' · '+esc(c.origem):''}</div></div>${callHref(c)?`<a class="wa" data-a="call" data-id="${c.id}" href="${callHref(c)}">Ligar</a>`:''}${waNum(c.tel)?`<button type="button" class="wa" data-a="wa" data-id="${c.id}">${WA_ICO}WhatsApp</button>`:''}<button type="button" class="btn" data-a="logc" data-id="${c.id}">Registar</button></div>`).join('')}${parados.length>5?`<div class="m" style="padding:8px 0">e mais ${parados.length-5} lead(s)</div>`:''}</div></div>`:''}`;
 }
 function vContacts(){
   return`<div class="head"><div><h1>Contactos</h1><p>${db.contacts.length} pessoas em ${new Set(db.contacts.map(c=>c.empresa)).size} empresas</p></div><div class="acts" style="margin:0"><button class="btn" data-a="impc">Importar</button><button class="btn" data-a="expc">Exportar</button><button class="btn pri" data-a="newc">Novo contacto</button></div></div>
@@ -666,8 +740,8 @@ function showDoc(q){
 }
 function editEmpresa(){
   const E=db.empresa||{};
-  modal('Dados da empresa',inp('Nome da empresa','e_nome',E.nome,'text','w')+inp('NIF','e_nif',E.nif)+inp('Telefone','e_tel',E.telefone,'tel')+inp('Endereço','e_end',E.endereco,'text','w')+inp('Email','e_mail',E.email,'email','w')+inp('IVA por defeito (%)','e_iva',E.iva_pct==null?14:E.iva_pct,'number')+inp('Validade do orçamento (dias)','e_val',E.validade_dias||15,'number')+`<label class="w">Condições por defeito<textarea id="e_cond">${esc(E.condicoes||'')}</textarea></label>`,
-    g=>{const o={nome:g('e_nome'),nif:g('e_nif'),telefone:g('e_tel'),endereco:g('e_end'),email:g('e_mail'),iva_pct:Math.min(100,Math.max(0,+g('e_iva')||0)),validade_dias:Math.min(365,Math.max(1,Math.round(+g('e_val')||15))),condicoes:g('e_cond')};
+  modal('Dados da empresa',inp('Nome da empresa','e_nome',E.nome,'text','w')+inp('NIF','e_nif',E.nif)+inp('Telefone','e_tel',E.telefone,'tel')+inp('Endereço','e_end',E.endereco,'text','w')+inp('Email','e_mail',E.email,'email','w')+sel('Setor','e_set','<option value="">—</option>'+opt(Object.keys(SETORES),E.setor||'',k=>[k,SETORES[k].nome]),'w')+inp('IVA por defeito (%)','e_iva',E.iva_pct==null?14:E.iva_pct,'number')+inp('Validade do orçamento (dias)','e_val',E.validade_dias||15,'number')+`<label class="w">Condições por defeito<textarea id="e_cond">${esc(E.condicoes||'')}</textarea></label>`,
+    g=>{const o={nome:g('e_nome'),nif:g('e_nif'),telefone:g('e_tel'),endereco:g('e_end'),email:g('e_mail'),iva_pct:Math.min(100,Math.max(0,+g('e_iva')||0)),validade_dias:Math.min(365,Math.max(1,Math.round(+g('e_val')||15))),condicoes:g('e_cond'),setor:g('e_set')};
       db.empresa=Object.assign({},E,o);touch('empresa',db.empresa)});
 }
 
@@ -788,9 +862,11 @@ document.addEventListener('click',e=>{
   if(a==='qfromdeal'){closeM();editQuote(null,id);return}
   if(a==='editemp'){editEmpresa();return}
   if(a==='samples'){loadSamples();return}
+  if(a==='setor'){pickSetor();return}
   if(a==='rmm'){if(!el.dataset.s){el.dataset.s=1;el.textContent='Confirmar';return}equipaApi({acao:'remover',email:id}).then(async()=>{await loadAll();render();toast('Pessoa removida')}).catch(e=>toast(e.message,true));return}
   if(a==='newm'){editMember();return}
   if(a==='newplan'){newPlan();return}
+  if(a==='renkey'){if(!el.dataset.s){el.dataset.s=1;el.textContent='Confirmar: o código antigo deixa de funcionar';return}sb.rpc('renovar_chave_captura').then(r=>{if(r.error)toast('Não foi possível renovar',true);else{db.empresa.chave_captura=r.data;render();toast('Chave renovada. Copia o código novo para o site.')}});return}
   if(a==='saveinstr'){sb.rpc('guardar_instrucoes',{p_texto:$('#f_instr').value}).then(r=>{if(r.error)toast('Não foi possível guardar',true);else{db.instrucoes=$('#f_instr').value;toast('Instruções guardadas')}});return}
   if(a==='okplan'||a==='noplan'){const m=a==='okplan'?+($('#m_'+id)||{}).value||1:1;sb.rpc('decidir_pedido_plano',{p_id:id,p_aprovar:a==='okplan',p_meses:m}).then(async r=>{if(r.error)toast('Não foi possível decidir: '+r.error.message,true);else{await loadAll();render();toast(a==='okplan'?'Plano ativado':'Pedido recusado')}});return}
   if(a==='impc'){const f=$('#impf');f.value='';f.click();return}
@@ -803,6 +879,11 @@ document.addEventListener('click',e=>{
 document.addEventListener('change',e=>{
   const el=e.target;
   if(el.id==='impf'&&el.files&&el.files[0]){importContacts(el.files[0]);return}
+  if(el.dataset.a==='auto'||el.dataset.a==='autod'){
+    const t=el.dataset.id,ck=document.querySelector('input[data-a="auto"][data-id="'+t+'"]'),dd=document.querySelector('select[data-a="autod"][data-id="'+t+'"]');
+    const row={empresa_id:db.empresa.id,tipo:t,ativa:ck.checked,dias:+dd.value};
+    sb.from('automacoes').upsert(row).then(r=>{if(r.error){toast('Não foi possível guardar a automação',true);loadAll().then(render)}else{db.auto=db.auto.filter(x=>x.tipo!==t).concat([row]);toast(ck.checked?'Automação ativada':'Automação guardada')}});
+    return}
   if(el.dataset.a==='tick'){const t=db.tasks.find(x=>x.id===el.dataset.id);t.feito=el.checked;touch('tasks',t);save();render()}
   if(el.dataset.a==='mv'){const d=db.deals.find(x=>x.id===el.dataset.id);if(d){d.etapa=el.value;touch('deals',d);save();render()}}
   if(el.dataset.a==='plano'){sb.rpc('definir_plano',{p_empresa:el.dataset.id,p_plano:el.value}).then(r=>{if(r.error)toast('Não foi possível mudar o plano',true);else toast('Plano atualizado')});return}
