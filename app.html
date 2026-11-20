@@ -2,7 +2,7 @@
 <html lang="pt">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Kamba CRM</title>
 <meta name="theme-color" content="#0d7a6e">
 <link rel="manifest" href="manifest.webmanifest">
@@ -116,15 +116,65 @@ tbody tr{cursor:pointer}tbody tr:hover{background:var(--accent-soft)}
 .acts .sp{margin-right:auto}
 .rel{margin-top:14px;font-size:12px;color:var(--muted)}
 @media (max-width:860px){
-  .app{grid-template-columns:minmax(0,1fr);gap:14px}
-  .side{position:static;flex-direction:row;align-items:center;justify-content:space-between;flex-wrap:wrap}
-  nav{flex-direction:row;overflow-x:auto;max-width:100%}
-  nav a{padding:8px 10px}
+  .app{grid-template-columns:170px minmax(0,1fr);gap:16px}
   .note{display:none}
   .grid2{grid-template-columns:minmax(0,1fr)}
   .fun .r{grid-template-columns:90px 1fr 90px}
   .fg{grid-template-columns:1fr}
 }
+
+/* telemóvel: interface própria (até 700px) */
+.mtop,#tabbar,#fab,.ccards,.stgs{display:none}
+.mob .side{display:none}
+.mob .app{grid-template-columns:minmax(0,1fr);gap:0;padding-block:0}
+.mob main{padding:12px 0 calc(150px + env(safe-area-inset-bottom,0px))}
+.mob .mtop{display:flex;align-items:center;gap:10px;font:600 16px var(--f-display);padding:calc(10px + env(safe-area-inset-top,0px)) 16px 10px;margin:0 -16px;border-bottom:1px solid var(--line);background:var(--surface)}
+.mob .mtop span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.mob #tabbar{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));position:fixed;left:0;right:0;bottom:0;z-index:12;background:var(--surface);border-top:1px solid var(--line);padding:0 env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}
+.mob #tabbar a,.mob #tabbar button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:58px;border:0;background:none;color:var(--muted);font:500 11px var(--f-body);text-decoration:none;position:relative;cursor:pointer;padding:6px 0}
+.mob #tabbar [aria-current="page"]{color:var(--accent)}
+.mob #tabbar [aria-current="page"]::before{content:"";position:absolute;top:0;left:30%;right:30%;height:3px;border-radius:0 0 3px 3px;background:var(--accent)}
+.mob #tabbar .n{position:absolute;top:5px;left:calc(50% + 6px);min-width:17px;height:17px;border-radius:9px;background:var(--bad);color:#fff;font-size:10px;display:grid;place-items:center;padding:0 4px}
+.mob #fab{display:grid;place-items:center;position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(74px + env(safe-area-inset-bottom,0px));width:56px;height:56px;border-radius:50%;border:0;background:var(--accent);color:var(--accent-ink);font-size:30px;line-height:1;box-shadow:0 6px 18px rgba(0,0,0,.28);z-index:11;cursor:pointer}
+.mob #fab[hidden]{display:none}
+.mob .head{margin-bottom:10px}
+.mob .head h1{font-size:20px}
+.mob .head p{font-size:13px}
+.mob .head .acts,.mob .head>.btn{display:none}
+.mob .kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.mob .kpi .v{font-size:20px}
+.mob .btn,.mob .tools input,.mob .tools select{min-height:44px}
+.mob .tools{position:sticky;top:0;z-index:5;background:var(--bg);padding:8px 0;margin:0 0 6px}
+.mob .tools input,.mob .tools select{min-width:0;flex:1 1 100%;font-size:16px}
+.mob .tw{display:none}
+.mob .ccards{display:flex;flex-direction:column;gap:10px}
+.cc{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;box-shadow:var(--shadow)}
+.cc-top{display:flex;gap:10px;align-items:center;min-width:0}
+.cc-top .grow{min-width:0;flex:1}
+.cc-top .t{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cc-top .m{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cc-top input[type=checkbox]{width:22px;height:22px;accent-color:var(--accent);flex:none}
+.cc-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.cc-act{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+.cc-act .wa{margin:0;min-height:44px;justify-content:center;border-radius:10px;font-size:13px;font-weight:500;text-decoration:none;color:var(--fg)}
+.mob .stgs{display:flex;gap:8px;overflow-x:auto;margin:0 -16px 10px;padding:2px 16px 6px;-webkit-overflow-scrolling:touch}
+.mob .stgs button{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:8px 14px;min-height:40px;font:500 13px var(--f-body);color:var(--fg);cursor:pointer;display:flex;gap:6px;align-items:center}
+.mob .stgs button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.mob .board{display:block;overflow:visible}
+.mob .col{min-height:0;background:transparent;border:0;padding:0}
+.mob .deal{cursor:default;padding:12px 14px}
+.mob .mv{display:block;min-height:44px;font-size:16px}
+.mob .deal .wa{min-height:40px}
+.mob .tk input[type=checkbox]{width:24px;height:24px}
+.mob .seg button{min-height:40px}
+.mob .ov{align-items:flex-end;padding:0}
+.mob .modal{margin:0;max-width:none!important;border-radius:18px 18px 0 0;max-height:92vh;max-height:92dvh;overflow-y:auto;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px))}
+.mob .fg input,.mob .fg select,.mob .fg textarea{font-size:16px;padding:11px 12px}
+.mob .acts .btn{flex:1 1 auto}
+.mob #toast{bottom:calc(76px + env(safe-area-inset-bottom,0px))}
+.sheet .sb{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:0;border-top:1px solid var(--line);background:none;padding:14px 4px;font:500 15px var(--f-body);color:var(--fg);cursor:pointer}
+.sheet .sb.bad{color:var(--bad)}
+.sheet .sb:first-of-type{border-top:0}
 @media (prefers-reduced-motion:no-preference){.card,.deal{transition:border-color .15s}}
 
 [hidden]{display:none!important}
@@ -192,13 +242,17 @@ tbody tr{cursor:pointer}tbody tr:hover{background:var(--accent-soft)}
 <div id="net" role="status" hidden></div>
 <div id="auth"><div class="authbox card"><div class="brand"><img src="assets/favicon.svg" width="30" height="30" alt="" style="border-radius:8px;flex:none">Kamba CRM</div><p class="m" style="font-size:14px;margin:0">A carregar…</p></div></div>
 <div class="app" id="app" hidden>
+  <header class="mtop" id="mtop"></header>
   <aside class="side">
     <div class="brand"><img src="assets/favicon.svg" width="30" height="30" alt="" style="border-radius:8px;flex:none">Kamba CRM</div>
     <nav id="nav"></nav>
     <div class="who"><span id="who"></span><button class="btn" data-a="out">Sair</button><a class="link" href="index.html" style="text-decoration:none">Página de vendas</a></div>
   </aside>
   <main id="main"></main>
+  <nav id="tabbar" aria-label="Navegação"></nav>
+  <button type="button" id="fab" data-a="fab" aria-label="Novo" hidden>+</button>
 </div>
+<input type="file" id="impf" accept=".csv,.txt,text/csv" hidden>
 <div id="modal"></div>
 <div id="doc" class="doc-ov" hidden></div>
 <div id="toast" role="status" hidden></div>
@@ -209,6 +263,11 @@ const STAGES=[{id:'novo',nome:'Novo',p:.1,cor:'#7a8fa6'},{id:'qual',nome:'Qualif
 const STATUS=['Lead','Cliente','Inativo'];
 const KEY='nexo-crm-v1';
 const $=s=>document.querySelector(s);
+const MQ=window.matchMedia?matchMedia('(max-width:700px)'):{matches:false};
+const isMob=()=>!!MQ.matches;
+function setMob(){document.documentElement.classList.toggle('mob',isMob())}
+setMob();
+(function(){const f=()=>{const was=document.documentElement.classList.contains('mob');setMob();if(was!==isMob()&&typeof render==='function'&&$('#app')&&!$('#app').hidden){render()}};if(MQ.addEventListener)MQ.addEventListener('change',f);else if(MQ.addListener)MQ.addListener(f)})();
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid=()=>crypto.randomUUID?crypto.randomUUID():'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=crypto.getRandomValues(new Uint8Array(1))[0]&15;return(c==='x'?r:(r&3|8)).toString(16)});
 const pad=n=>String(n).padStart(2,'0');
@@ -392,8 +451,27 @@ function renderNav(){
   const pend=db.tasks.filter(t=>!t.feito).length;
   $('#nav').innerHTML=VIEWS.map(([id,nm,p])=>`<a href="#${id}" ${ui.view===id?'aria-current="page"':''}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${p}"/></svg>${nm}${id==='tarefas'&&pend?`<span class="n">${pend}</span>`:''}</a>`).join('');
 }
+const FABS={dashboard:['newc','Novo contacto'],contactos:['newc','Novo contacto'],pipeline:['newd','Novo negócio'],orcamentos:['newq','Novo orçamento'],tarefas:['newt','Nova tarefa']};
+const IC=p=>`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${p}"/></svg>`;
+function mobChrome(){
+  if(!isMob())return;
+  const pend=db.tasks.filter(t=>!t.feito).length,T=['dashboard','contactos','pipeline','tarefas'];
+  $('#mtop').innerHTML='<img src="assets/favicon.svg" width="26" height="26" alt="" style="border-radius:7px;flex:none"><span>'+esc((db.empresa&&db.empresa.nome)||'Kamba CRM')+'</span>';
+  $('#tabbar').innerHTML=VIEWS.filter(v=>T.indexOf(v[0])>=0).map(([id,nm,p])=>`<a href="#${id}" ${ui.view===id?'aria-current="page"':''}>${IC(p)}${nm}${id==='tarefas'&&pend?`<span class="n">${pend>99?'99+':pend}</span>`:''}</a>`).join('')+`<button type="button" data-a="more" ${T.indexOf(ui.view)<0?'aria-current="page"':''}>${IC('M5 12h.01M12 12h.01M19 12h.01')}Mais</button>`;
+  const f=FABS[ui.view],b=$('#fab');
+  b.hidden=!f;if(f){b.dataset.a=f[0];b.setAttribute('aria-label',f[1])}
+}
+function moreSheet(){
+  const B=(ic,t,a,x,c)=>`<button type="button" class="sb ${c||''}" data-a="${a}" ${x?'data-x="1" data-id="'+x+'"':''}>${IC(ic)}${t}</button>`;
+  const v=n=>VIEWS.filter(x=>x[0]===n)[0];
+  $('#modal').innerHTML=`<div class="ov" data-a="close"><div class="modal sheet"><h2 style="font-size:17px">${esc(me.email||'')}</h2><p class="m" style="margin:0 0 8px;font-size:13px">${esc(PAPEL[me.papel]||'')}${db.empresa&&db.empresa.nome?' · '+esc(db.empresa.nome):''}</p>`
+  +B(v('orcamentos')[2],'Orçamentos','go','orcamentos')+B(v('equipa')[2],'Equipa e definições','go','equipa')
+  +B('M12 3v12m0 0l-4-4m4 4l4-4M5 21h14','Importar contactos (CSV)','impc',1)+B('M12 15V3m0 0L8 7m4-4l4 4M5 21h14','Exportar contactos','expc',1)+B('M12 15V3m0 0L8 7m4-4l4 4M5 21h14','Exportar negócios','expd',1)
+  +`<a class="sb" href="index.html" style="text-decoration:none">${IC('M3 12l9-9 9 9M5 10v10h14V10')}Página de vendas</a>`
+  +B('M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9','Terminar sessão','askout',1,'bad')+`</div></div>`;
+}
 function render(){
-  renderNav();
+  renderNav();mobChrome();
   const v=ui.view;
   $('#main').innerHTML=planBanner()+(v==='dashboard'?vDash():v==='contactos'?vContacts():v==='pipeline'?vPipe():v==='orcamentos'?vQuotes():v==='equipa'?vTeam():vTasks());
   if(v==='contactos')listContacts();
@@ -651,9 +729,9 @@ function vDash(){
 }
 function vContacts(){
   return`<div class="head"><div><h1>Contactos</h1><p>${db.contacts.length} pessoas em ${new Set(db.contacts.map(c=>c.empresa)).size} empresas</p></div><div class="acts" style="margin:0"><button class="btn" data-a="impc">Importar</button><button class="btn" data-a="expc">Exportar</button><button class="btn pri" data-a="newc">Novo contacto</button></div></div>
-  <input type="file" id="impf" accept=".csv,.txt,text/csv" hidden>
   <div class="tools"><input id="q" type="search" placeholder="Pesquisar por nome, empresa ou email" value="${esc(ui.q)}" aria-label="Pesquisar contactos"><select id="st" aria-label="Filtrar por estado"><option value="">Todos os estados</option>${STATUS.map(s=>`<option ${ui.st===s?'selected':''}>${s}</option>`).join('')}</select></div>
   <div id="selbar" class="pbar" hidden style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"></div>
+  <div class="ccards" id="clistm" hidden></div>
   <div class="tw"><table><thead><tr><th style="width:34px"><input type="checkbox" data-a="selall" aria-label="Selecionar todos os contactos da lista"></th><th>Nome</th><th>Empresa</th><th>Contacto</th><th>Cidade</th><th>Estado</th>${isMgr()?'<th>Responsável</th>':''}</tr></thead><tbody id="clist"></tbody></table></div>`;
 }
 function updSel(){
@@ -684,13 +762,18 @@ function listContacts(){
   const q=ui.q.toLowerCase();
   const r=db.contacts.filter(c=>(!ui.st||c.estado===ui.st)&&(!q||(c.nome+c.empresa+c.email).toLowerCase().includes(q)));
   ui.shown=r;
+  if(isMob()){
+    $('#clistm').hidden=false;$('#clistm').innerHTML=r.length?r.map(c=>`<div class="cc" data-a="editc" data-id="${c.id}"><div class="cc-top"><input type="checkbox" data-a="sel" data-id="${c.id}" ${ui.sel.has(c.id)?'checked':''} aria-label="Selecionar ${esc(c.nome)}"><span class="av">${esc(ini(c.nome))}</span><div class="grow"><div class="t">${esc(c.nome)}</div><div class="m">${esc([c.cargo,c.empresa].filter(Boolean).join(' · '))||'&nbsp;'}</div></div><span class="chip ${c.estado==='Cliente'?'good':c.estado==='Lead'?'':'mut'}">${esc(c.estado)}</span></div><div class="cc-chips">${c.origem?`<span class="chip mut">${esc(c.origem)}</span>`:''}${proxChip(c)}<span class="m">${c.ultimo_contacto?'Contactado em '+fdate(c.ultimo_contacto.slice(0,10)):'Ainda não contactado'}</span></div><div class="cc-act">${callHref(c)?`<a class="wa" data-a="call" data-id="${c.id}" href="${callHref(c)}" aria-label="Ligar a ${esc(c.nome)}">Ligar</a>`:'<span></span>'}${waNum(c.tel)?`<button type="button" class="wa" data-a="wa" data-id="${c.id}" aria-label="Enviar WhatsApp a ${esc(c.nome)}">${WA_ICO}WhatsApp</button>`:'<span></span>'}<button type="button" class="wa" data-a="logc" data-id="${c.id}">Registar</button></div></div>`).join(''):'<div class="empty">Nenhum contacto encontrado.</div>';
+    updSel();return}
   $('#clist').innerHTML=r.length?r.map(c=>`<tr data-a="editc" data-id="${c.id}"><td><input type="checkbox" data-a="sel" data-id="${c.id}" ${ui.sel.has(c.id)?'checked':''} aria-label="Selecionar ${esc(c.nome)}"></td><td><div style="display:flex;gap:10px;align-items:center"><span class="av">${esc(ini(c.nome))}</span><div><div class="t">${esc(c.nome)}</div><div class="m">${esc(c.cargo)}${c.origem?(c.cargo?' · ':'')+esc(c.origem):''}</div>${proxChip(c)}</div></div></td><td>${esc(c.empresa)}</td><td><div>${esc(c.email)}</div><div class="m">${esc(c.tel)}</div>${callHref(c)?`<a class="wa" data-a="call" data-id="${c.id}" href="${callHref(c)}" aria-label="Ligar a ${esc(c.nome)}">Ligar</a> `:''}${waNum(c.tel)?`<button type="button" class="wa" data-a="wa" data-id="${c.id}" aria-label="Enviar WhatsApp a ${esc(c.nome)}">${WA_ICO}WhatsApp</button>`:''}</td><td>${esc(c.cidade)}</td><td><span class="chip ${c.estado==='Cliente'?'good':c.estado==='Lead'?'':'mut'}">${c.estado}</span><div class="m" style="margin-top:4px">${c.ultimo_contacto?'Contactado em '+fdate(c.ultimo_contacto.slice(0,10)):'Ainda não contactado'}</div></td>${isMgr()?`<td class="m">${esc((c.responsavel||'').split('@')[0])}</td>`:''}</tr>`).join(''):'<tr><td colspan="7"><div class="empty">Nenhum contacto encontrado.</div></td></tr>';
   updSel();
 }
 function vPipe(){
   const open=db.deals.filter(isOpen);
-  return`<div class="head"><div><h1>Pipeline</h1><p>${open.length} negócios abertos. Arrasta os cartões entre colunas para mudar de etapa.</p></div><div class="acts" style="margin:0"><button class="btn" data-a="expd">Exportar</button><button class="btn pri" data-a="newd">Novo negócio</button></div></div>
-  <div class="board">${STAGES.map(s=>{const ds=db.deals.filter(d=>d.etapa===s.id);return`<div class="col" data-stage="${s.id}"><h3><span style="display:flex;align-items:center;gap:7px"><i style="width:9px;height:9px;border-radius:50%;background:${s.cor};display:inline-block"></i>${s.nome}</span><span class="tot">${ds.length} · ${kzc(ds.reduce((a,d)=>a+d.valor,0))}</span></h3>${ds.map(d=>`<div class="deal" draggable="true" data-a="editd" data-id="${d.id}"><div class="t">${esc(d.titulo)}</div><div class="m">${esc(ccomp(d.contacto)||'Sem empresa')}${d.contacto?' · '+esc(cname(d.contacto)):''}</div><div class="val">${kz(d.valor)}</div><div class="m">Fecho previsto ${fdate(d.fecho)}${isMgr()&&d.responsavel?' · '+esc(d.responsavel.split('@')[0]):''}</div>${d.contacto&&waNum((db.contacts.find(c=>c.id===d.contacto)||{}).tel)?`<button type="button" class="wa" data-a="wa" data-id="${d.contacto}" data-deal="${d.id}" aria-label="Enviar WhatsApp sobre ${esc(d.titulo)}">${WA_ICO}WhatsApp</button>`:''}<select class="mv" data-a="mv" data-id="${d.id}" aria-label="Mover para outra etapa">${opt(STAGES,d.etapa,x=>[x.id,'Mover para: '+x.nome])}</select></div>`).join('')}</div>`}).join('')}</div>`;
+  const stg=STAGES.some(x=>x.id===ui.stage)?ui.stage:STAGES[0].id;
+  return`<div class="head"><div><h1>Pipeline</h1><p>${open.length} negócios abertos. ${isMob()?'Escolhe a etapa e muda-a em cada cartão.':'Arrasta os cartões entre colunas para mudar de etapa.'}</p></div><div class="acts" style="margin:0"><button class="btn" data-a="expd">Exportar</button><button class="btn pri" data-a="newd">Novo negócio</button></div></div>
+  ${isMob()?`<div class="stgs" role="tablist">${STAGES.map(s=>`<button type="button" data-a="stg" data-id="${s.id}" aria-pressed="${stg===s.id}"><i style="width:9px;height:9px;border-radius:50%;background:${s.cor};display:inline-block"></i>${s.nome} ${db.deals.filter(d=>d.etapa===s.id).length}</button>`).join('')}</div>`:''}
+  <div class="board">${STAGES.filter(s=>!isMob()||s.id===stg).map(s=>{const ds=db.deals.filter(d=>d.etapa===s.id);return`<div class="col" data-stage="${s.id}"><h3><span style="display:flex;align-items:center;gap:7px"><i style="width:9px;height:9px;border-radius:50%;background:${s.cor};display:inline-block"></i>${s.nome}</span><span class="tot">${ds.length} · ${kzc(ds.reduce((a,d)=>a+d.valor,0))}</span></h3>${ds.map(d=>`<div class="deal" ${isMob()?'':'draggable="true" '}data-a="editd" data-id="${d.id}"><div class="t">${esc(d.titulo)}</div><div class="m">${esc(ccomp(d.contacto)||'Sem empresa')}${d.contacto?' · '+esc(cname(d.contacto)):''}</div><div class="val">${kz(d.valor)}</div><div class="m">Fecho previsto ${fdate(d.fecho)}${isMgr()&&d.responsavel?' · '+esc(d.responsavel.split('@')[0]):''}</div>${d.contacto&&waNum((db.contacts.find(c=>c.id===d.contacto)||{}).tel)?`<button type="button" class="wa" data-a="wa" data-id="${d.contacto}" data-deal="${d.id}" aria-label="Enviar WhatsApp sobre ${esc(d.titulo)}">${WA_ICO}WhatsApp</button>`:''}<select class="mv" data-a="mv" data-id="${d.id}" aria-label="Mover para outra etapa">${opt(STAGES,d.etapa,x=>[x.id,'Mover para: '+x.nome])}</select></div>`).join('')}</div>`}).join('')}</div>`;
 }
 function vTasks(){
   const f=ui.tf;
@@ -867,6 +950,10 @@ function askOut(){
 document.addEventListener('click',e=>{
   const el=e.target.closest('[data-a]');if(!el)return;
   const a=el.dataset.a,id=el.dataset.id;
+  if(el.dataset.x)closeM();
+  if(a==='more'){moreSheet();return}
+  if(a==='go'){location.hash=id;return}
+  if(a==='stg'){ui.stage=id;render();return}
   if(a==='close'){if(e.target===el||el.tagName==='BUTTON')closeM();return}
   if(a==='tick')return;
   if(a==='tf'){ui.tf=el.dataset.k;render();return}
