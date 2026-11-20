@@ -250,10 +250,13 @@ const SB_URL='https://dywzfjrisvgkujamueql.supabase.co';
 const SB_KEY='sb_publishable_Ji27m-a-nNTJ2XQbdDkIgA_0scQq98v';
 const RECOVERY=/type=recovery/.test(location.hash);
 const sb=supabase.createClient(SB_URL,SB_KEY);
-const DB0=()=>({contacts:[],deals:[],tasks:[],team:[],pedidos:[],orcamentos:[],empresa:{},empresas:[],chaves:[],pedPlano:[],pend:[],instrucoes:''});
+const DB0=()=>({contacts:[],deals:[],tasks:[],team:[],pedidos:[],orcamentos:[],empresa:{},empresas:[],chaves:[],pedPlano:[],pend:[],instrucoes:'',inter:[]});
 let db=DB0();
 let me={email:'',papel:'',plataforma:false};
 const PLANOS={teste:'Teste grátis',essencial:'Essencial',equipa:'Equipa',empresa:'Empresa'};
+const ORIGENS=['WhatsApp','Facebook','Instagram','Site','Indicação','Loja','Telefone','Outra'];
+const TIPOS={chamada:'Chamada',whatsapp:'WhatsApp',email:'Email',visita:'Visita',nota:'Nota'};
+const RESULT={'':'—',atendeu:'Atendeu',nao_atendeu:'Não atendeu',pediu_proposta:'Pediu proposta',agendou:'Agendou reunião',sem_interesse:'Sem interesse'};
 const PRECOS={essencial:'15 000 Kz por mês',equipa:'35 000 Kz por mês',empresa:'Sob consulta'};
 const DAY=864e5;
 function planoInfo(){
@@ -270,10 +273,11 @@ function planBanner(){
   return`<div class="pbar" role="status">${i.teste?'Teste grátis':'O teu plano'}: ${i.dias===1?'falta 1 dia':'faltam '+i.dias+' dias'} (até ${fmtD(i.fim)}).${link}</div>`;
 }
 function bloqueado(){if(planoInfo().ativa)return false;toast('O período terminou. Só podes consultar os dados. Escolhe um plano na página Equipa.',true);loadAll().then(ok=>ok&&render());return true}
-const TBL={contacts:'contactos',deals:'negocios',tasks:'tarefas',team:'equipa',orcamentos:'orcamentos',empresa:'empresas'};
+const TBL={contacts:'contactos',deals:'negocios',tasks:'tarefas',team:'equipa',orcamentos:'orcamentos',empresa:'empresas',inter:'interacoes'};
 const rp=o=>o.responsavel?{responsavel:o.responsavel}:{};
 const toRow={
-  contacts:o=>({id:o.id,nome:o.nome,empresa:o.empresa,cargo:o.cargo,email:o.email,tel:o.tel,cidade:o.cidade,estado:o.estado,notas:o.notas,...(o.ultimo_contacto?{ultimo_contacto:o.ultimo_contacto}:{}),...rp(o)}),
+  inter:o=>({id:o.id,contacto_id:o.contacto_id,tipo:o.tipo,resultado:o.resultado||'',nota:o.nota||'',criado_em:o.criado_em}),
+  contacts:o=>({id:o.id,origem:o.origem||'',proximo_contacto:o.proximo_contacto||null,nome:o.nome,empresa:o.empresa,cargo:o.cargo,email:o.email,tel:o.tel,cidade:o.cidade,estado:o.estado,notas:o.notas,...(o.ultimo_contacto?{ultimo_contacto:o.ultimo_contacto}:{}),...rp(o)}),
   deals:o=>({id:o.id,titulo:o.titulo,contacto_id:o.contacto||null,valor:o.valor,etapa:o.etapa,fecho:o.fecho||null,notas:o.notas||'',...rp(o)}),
   tasks:o=>({id:o.id,titulo:o.titulo,contacto_id:o.contacto||null,data:o.data,feito:!!o.feito,...rp(o)}),
   team:o=>({email:o.email,papel:o.papel}),
@@ -307,7 +311,7 @@ async function save(){
     while(queue.length){
       const j=queue[0];let n=1;
       if(j.op==='up'&&(j.k==='contacts'||j.k==='deals'||j.k==='tasks')){while(n<200&&queue[n]&&queue[n].op==='up'&&queue[n].k===j.k)n++}
-      const r=n>1?await sb.from(TBL[j.k]).upsert([...new Map(queue.slice(0,n).map(x=>[x.row.id,x.row])).values()]):j.op==='up'?(j.k==='team'?await sb.from('equipa').update({papel:j.row.papel}).eq('email',j.row.email):j.k==='empresa'?await sb.from('empresas').update(j.row).eq('id',j.id):await sb.from(TBL[j.k]).upsert(j.row)):await sb.from(TBL[j.k]).delete().eq(j.k==='team'?'email':'id',j.id);
+      const r=n>1?await sb.from(TBL[j.k]).upsert([...new Map(queue.slice(0,n).map(x=>[x.row.id,x.row])).values()]):j.op==='up'?(j.k==='team'?await sb.from('equipa').update({papel:j.row.papel}).eq('email',j.row.email):j.k==='empresa'?await sb.from('empresas').update(j.row).eq('id',j.id):j.k==='inter'?await sb.from('interacoes').upsert(j.row,{ignoreDuplicates:true}):await sb.from(TBL[j.k]).upsert(j.row)):await sb.from(TBL[j.k]).delete().eq(j.k==='team'?'email':'id',j.id);
       if(r.error){
         if(isNet(r.error)){offline=true;persistQ();toast('Sem ligação. As alterações ficam guardadas neste aparelho.');return}
         queue=[];persistQ();toast('Não foi possível guardar: '+r.error.message,true);await loadAll();render();return;
@@ -333,16 +337,18 @@ async function loadAll(){
     sb.from('orcamentos').select('*').order('criado_em',{ascending:false}),
     sb.from('empresas').select('*').limit(1),
     sb.from('plataforma_config').select('instrucoes_pagamento').limit(1),
+    sb.from('interacoes').select('*').order('criado_em',{ascending:false}).limit(300),
     adm?sb.from('pedidos_plano').select('*').order('criado_em',{ascending:false}).limit(20):null,
     adm?sb.from('api_chaves').select('id,nome,prefixo,criado_em').order('criado_em',{ascending:false}):null,
     pl?sb.from('pedidos_demo').select('*').order('criado_em',{ascending:false}).limit(50):null,
     pl?sb.rpc('resumo_empresas'):null,
     pl?sb.rpc('pedidos_plano_pendentes'):null];
-  const[c,d,t,e,o,em,cf,pp,k,p,r,q]=await Promise.all(Q);
+  const[c,d,t,e,o,em,cf,it,pp,k,p,r,q]=await Promise.all(Q);
   const err=c.error||d.error||t.error||e.error||o.error||em.error;
   if(err){if(isNet(err)){offline=true;netBanner()}else toast('Erro ao carregar dados: '+err.message,true);return false}
   db.contacts=c.data;db.deals=d.data.map(fromRow.deals);db.tasks=t.data.map(fromRow.tasks);db.team=e.data;
   db.orcamentos=o.data.map(fromRow.orcamentos);db.empresa=(em.data&&em.data[0])||{};
+  db.inter=(it&&!it.error&&it.data)||[];
   db.instrucoes=(cf&&!cf.error&&cf.data&&cf.data[0]&&cf.data[0].instrucoes_pagamento)||'';
   db.pedPlano=(pp&&!pp.error&&pp.data||[]).filter(x=>x.empresa_id===db.empresa.id);
   db.chaves=(db.empresa.plano==='empresa'&&k&&!k.error&&k.data)||[];
@@ -428,7 +434,7 @@ function parseCSV(t){
   row.push(cur);if(row.some(x=>x.trim()))rows.push(row);
   return rows;
 }
-const COLS={nome:['nome','name','cliente','nomecompleto'],empresa:['empresa','company','organizacao'],cargo:['cargo','funcao'],email:['email','mail','correio','emailaddress'],tel:['telefone','tel','telemovel','whatsapp','phone','celular','contacto'],cidade:['cidade','city','localidade'],estado:['estado','status','tipo'],notas:['notas','nota','observacoes','obs','notes']};
+const COLS={nome:['nome','name','cliente','nomecompleto'],empresa:['empresa','company','organizacao'],cargo:['cargo','funcao'],email:['email','mail','correio','emailaddress'],tel:['telefone','tel','telemovel','whatsapp','phone','celular','contacto'],cidade:['cidade','city','localidade'],estado:['estado','status','tipo'],notas:['notas','nota','observacoes','obs','notes'],origem:['origem','fonte','source','canal']};
 function csvContacts(text){
   const rows=parseCSV(text);if(rows.length<2)return{erro:'O ficheiro está vazio ou só tem o cabeçalho.'};
   const head=rows[0].map(noAcc),idx={};
@@ -444,7 +450,7 @@ function csvContacts(text){
     if(ok.length>=2000){excesso++;continue}
     if(email)seenE.add(email);if(tn)seenT.add(tn);
     const est=STATUS.find(x=>noAcc(x)===noAcc(g('estado')))||'Lead';
-    ok.push({id:uid(),nome:nome.slice(0,200),empresa:g('empresa').slice(0,200),cargo:g('cargo').slice(0,200),email:email.slice(0,200),tel:tel.slice(0,60),cidade:g('cidade').slice(0,100),estado:est,notas:g('notas').slice(0,2000),responsavel:me.email});
+    ok.push({id:uid(),nome:nome.slice(0,200),empresa:g('empresa').slice(0,200),cargo:g('cargo').slice(0,200),email:email.slice(0,200),tel:tel.slice(0,60),cidade:g('cidade').slice(0,100),estado:est,origem:ORIGENS.find(x=>noAcc(x)===noAcc(g('origem')))||'',notas:g('notas').slice(0,2000),responsavel:me.email});
   }
   return{ok,semNome,dup,excesso};
 }
@@ -465,7 +471,7 @@ function downloadCSV(nome,cab,linhas){
   const txt='﻿'+[cab,...linhas].map(r=>r.map(csvCell).join(';')).join('\r\n');
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'text/csv;charset=utf-8'}));a.download=nome;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
 }
-function exportContacts(){downloadCSV('kamba-contactos-'+today()+'.csv',['Nome','Empresa','Cargo','Email','Telefone','Cidade','Estado','Notas','Responsável'],db.contacts.map(c=>[c.nome,c.empresa,c.cargo,c.email,c.tel,c.cidade,c.estado,c.notas,c.responsavel]))}
+function exportContacts(){downloadCSV('kamba-contactos-'+today()+'.csv',['Nome','Empresa','Cargo','Email','Telefone','Cidade','Estado','Origem','Próximo contacto','Notas','Responsável'],db.contacts.map(c=>[c.nome,c.empresa,c.cargo,c.email,c.tel,c.cidade,c.estado,c.origem,c.proximo_contacto,c.notas,c.responsavel]))}
 function exportDeals(){const nm=id=>(db.contacts.find(c=>c.id===id)||{}).nome||'';downloadCSV('kamba-negocios-'+today()+'.csv',['Título','Contacto','Valor (Kz)','Etapa','Fecho previsto','Notas','Responsável'],db.deals.map(d=>[d.titulo,nm(d.contacto),d.valor,(STAGES.find(x=>x.id===d.etapa)||{}).nome||d.etapa,d.fecho,d.notas,d.responsavel]))}
 
 function vTeam(){
@@ -519,6 +525,25 @@ function saudacao(){
   const nome=n?n[0].toUpperCase()+n.slice(1):'';
   return (h<12?'Bom dia':h<19?'Boa tarde':'Boa noite')+(nome?', '+esc(nome):'');
 }
+const addDays=n=>{const d=new Date();d.setDate(d.getDate()+n);return iso(d)};
+const callHref=c=>{const n=waNum(c.tel);return n?'tel:+'+n:''};
+function proxChip(c){
+  if(!c.proximo_contacto)return'';
+  const t=today(),d=c.proximo_contacto;
+  return d<t?`<span class="chip bad">Atrasado desde ${fdate(d)}</span>`:d===t?'<span class="chip warn">Contactar hoje</span>':`<span class="chip mut">Contactar em ${fdate(d)}</span>`;
+}
+function logContact(cid,tipo,res){
+  const c=db.contacts.find(x=>x.id===cid);if(!c)return;
+  modal('Registar contacto com '+esc(c.nome),sel('O que aconteceu','l_tipo',opt(Object.keys(TIPOS),tipo||'chamada',k=>[k,TIPOS[k]]))+sel('Resultado','l_res',opt(Object.keys(RESULT),res||'',k=>[k,RESULT[k]]))+`<label class="w">Nota<textarea id="l_nota" maxlength="500" placeholder="O que ficou combinado?"></textarea></label>`+inp('Próximo contacto','l_prox',c.proximo_contacto&&c.proximo_contacto>today()?c.proximo_contacto:addDays(3),'date','w')+'<div class="m w" style="font-size:12px">Deixa a data vazia se já não precisas de voltar a contactar.</div>',
+    g=>{const o={id:uid(),contacto_id:cid,tipo:g('l_tipo'),resultado:g('l_res'),nota:g('l_nota').slice(0,500),criado_em:new Date().toISOString(),responsavel:me.email};
+      db.inter.unshift(o);touch('inter',o);
+      c.ultimo_contacto=o.criado_em;c.proximo_contacto=g('l_prox')||null;touch('contacts',c)});
+}
+function histHTML(cid){
+  const h=db.inter.filter(i=>i.contacto_id===cid).slice(0,6);
+  if(!h.length)return'';
+  return`<div class="w" style="grid-column:1/-1"><div class="m" style="font-size:12px;margin-bottom:4px"><b>Histórico</b></div>${h.map(i=>`<div class="m" style="font-size:12px;line-height:1.5">${fdate(String(i.criado_em).slice(0,10))} · ${TIPOS[i.tipo]||i.tipo}${i.resultado?' · '+RESULT[i.resultado]:''}${i.nota?' · '+esc(i.nota):''}${i.responsavel?' ('+esc(i.responsavel.split('@')[0])+')':''}</div>`).join('')}</div>`;
+}
 function vDash(){
   if(!db.contacts.length&&!db.deals.length&&!db.tasks.length)return`<div class="head"><div><h1>Painel</h1><p>O CRM ainda está vazio.</p></div></div><div class="card empty"><p>Cria o primeiro contacto ou carrega dados de exemplo para ver como funciona.</p><div class="acts" style="justify-content:center"><button class="btn pri" data-a="newc">Novo contacto</button><button class="btn" data-a="samples">Carregar exemplos</button></div></div>`;
   const open=db.deals.filter(isOpen);
@@ -528,17 +553,26 @@ function vDash(){
   const od=db.tasks.filter(overdue).length;
   const fun=STAGES.slice(0,4).map(s=>{const ds=db.deals.filter(d=>d.etapa===s.id);return{s,n:ds.length,v:ds.reduce((a,d)=>a+d.valor,0)}});
   const mx=Math.max(1,...fun.map(f=>f.v));
+  const hoje=db.contacts.filter(c=>!c.criado_em||String(c.criado_em).slice(0,10)===today()).length;
+  const dev=db.contacts.filter(c=>c.proximo_contacto&&c.proximo_contacto<=today()).sort((a,b)=>a.proximo_contacto.localeCompare(b.proximo_contacto));
+  const orc={};db.contacts.forEach(c=>{const k=c.origem||'Sem origem';orc[k]=(orc[k]||0)+1});
+  const ors=Object.entries(orc).sort((a,b)=>b[1]-a[1]),omx=Math.max(1,...ors.map(x=>x[1]));
   const nt=db.tasks.filter(t=>!t.feito).sort((a,b)=>a.data.localeCompare(b.data)).slice(0,5);
   return`<div class="head"><div><h1>${saudacao()}</h1><p>${isMgr()?'Resumo das vendas':'Os teus números'} em ${new Date().toLocaleDateString('pt-PT',{day:'numeric',month:'long',year:'numeric'})}</p></div></div>
   <div class="kpis">
     <div class="card kpi"><div class="l">Receita prevista</div><div class="v">${kzc(fc)}</div><div class="s">ponderada pela etapa</div></div>
     <div class="card kpi"><div class="l">Negócios abertos</div><div class="v">${open.length}</div><div class="s">${kzc(open.reduce((a,d)=>a+d.valor,0))} em carteira</div></div>
     <div class="card kpi"><div class="l">Taxa de conversão</div><div class="v">${conv}%</div><div class="s">${won.length} ganhos, ${lost.length} perdidos</div></div>
+    <div class="card kpi"><div class="l">Contactos novos hoje</div><div class="v">${hoje}</div><div class="s">${db.contacts.length} contactos no total</div></div>
     <div class="card kpi"><div class="l">Tarefas em atraso</div><div class="v" style="color:${od?'var(--bad)':'inherit'}">${od}</div><div class="s">${db.tasks.filter(t=>!t.feito).length} pendentes no total</div></div>
   </div>
   <div class="grid2">
     <div class="card"><h2>Funil de vendas</h2><div class="fun">${fun.map(f=>`<div class="r"><div><div class="t">${f.s.nome}</div><div class="cnt">${f.n} negócio${f.n===1?'':'s'}</div></div><div class="bar"><b style="width:${Math.round(100*f.v/mx)}%"></b></div><div class="num">${kzc(f.v)}</div></div>`).join('')}</div></div>
     <div class="card"><h2>Próximas tarefas</h2><div class="list">${nt.length?nt.map(t=>`<div class="it"><div class="grow"><div class="t">${esc(t.titulo)}</div><div class="m">${esc(cname(t.contacto))}</div></div><span class="chip ${overdue(t)?'bad':t.data===today()?'warn':'mut'}">${t.data===today()?'Hoje':fdate(t.data)}</span></div>`).join(''):'<div class="empty">Sem tarefas pendentes.</div>'}</div></div>
+  </div>
+  <div class="grid2" style="margin-top:12px">
+    <div class="card"><h2>Para contactar hoje</h2><div class="list">${dev.length?dev.slice(0,6).map(c=>`<div class="it"><div class="grow"><div class="t">${esc(c.nome)}</div><div class="m">${esc(c.empresa||'')}${c.empresa&&c.tel?' · ':''}${esc(c.tel||'')}</div></div>${proxChip(c)}${callHref(c)?`<a class="wa" data-a="call" data-id="${c.id}" href="${callHref(c)}">Ligar</a>`:''}${waNum(c.tel)?`<button type="button" class="wa" data-a="wa" data-id="${c.id}">${WA_ICO}WhatsApp</button>`:''}<button type="button" class="btn" data-a="logc" data-id="${c.id}">Registar</button></div>`).join('')+(dev.length>6?`<div class="m" style="padding:8px 0">e mais ${dev.length-6} contacto(s)</div>`:''):'<div class="empty">Ninguém para contactar hoje. Define a data de próximo contacto em cada cliente.</div>'}</div></div>
+    <div class="card"><h2>Contactos por origem</h2><div class="fun">${ors.map(([k,n])=>`<div class="r"><div><div class="t">${esc(k)}</div></div><div class="bar"><b style="width:${Math.round(100*n/omx)}%"></b></div><div class="num">${n}</div></div>`).join('')||'<div class="empty">Sem contactos ainda.</div>'}</div></div>
   </div>`;
 }
 function vContacts(){
@@ -550,7 +584,7 @@ function vContacts(){
 function listContacts(){
   const q=ui.q.toLowerCase();
   const r=db.contacts.filter(c=>(!ui.st||c.estado===ui.st)&&(!q||(c.nome+c.empresa+c.email).toLowerCase().includes(q)));
-  $('#clist').innerHTML=r.length?r.map(c=>`<tr data-a="editc" data-id="${c.id}"><td><div style="display:flex;gap:10px;align-items:center"><span class="av">${esc(ini(c.nome))}</span><div><div class="t">${esc(c.nome)}</div><div class="m">${esc(c.cargo)}</div></div></div></td><td>${esc(c.empresa)}</td><td><div>${esc(c.email)}</div><div class="m">${esc(c.tel)}</div>${waNum(c.tel)?`<button type="button" class="wa" data-a="wa" data-id="${c.id}" aria-label="Enviar WhatsApp a ${esc(c.nome)}">${WA_ICO}WhatsApp</button>`:''}</td><td>${esc(c.cidade)}</td><td><span class="chip ${c.estado==='Cliente'?'good':c.estado==='Lead'?'':'mut'}">${c.estado}</span><div class="m" style="margin-top:4px">${c.ultimo_contacto?'Contactado em '+fdate(c.ultimo_contacto.slice(0,10)):'Ainda não contactado'}</div></td>${isMgr()?`<td class="m">${esc((c.responsavel||'').split('@')[0])}</td>`:''}</tr>`).join(''):'<tr><td colspan="6"><div class="empty">Nenhum contacto encontrado.</div></td></tr>';
+  $('#clist').innerHTML=r.length?r.map(c=>`<tr data-a="editc" data-id="${c.id}"><td><div style="display:flex;gap:10px;align-items:center"><span class="av">${esc(ini(c.nome))}</span><div><div class="t">${esc(c.nome)}</div><div class="m">${esc(c.cargo)}${c.origem?(c.cargo?' · ':'')+esc(c.origem):''}</div>${proxChip(c)}</div></div></td><td>${esc(c.empresa)}</td><td><div>${esc(c.email)}</div><div class="m">${esc(c.tel)}</div>${callHref(c)?`<a class="wa" data-a="call" data-id="${c.id}" href="${callHref(c)}" aria-label="Ligar a ${esc(c.nome)}">Ligar</a> `:''}${waNum(c.tel)?`<button type="button" class="wa" data-a="wa" data-id="${c.id}" aria-label="Enviar WhatsApp a ${esc(c.nome)}">${WA_ICO}WhatsApp</button>`:''}</td><td>${esc(c.cidade)}</td><td><span class="chip ${c.estado==='Cliente'?'good':c.estado==='Lead'?'':'mut'}">${c.estado}</span><div class="m" style="margin-top:4px">${c.ultimo_contacto?'Contactado em '+fdate(c.ultimo_contacto.slice(0,10)):'Ainda não contactado'}</div></td>${isMgr()?`<td class="m">${esc((c.responsavel||'').split('@')[0])}</td>`:''}</tr>`).join(''):'<tr><td colspan="6"><div class="empty">Nenhum contacto encontrado.</div></td></tr>';
 }
 function vPipe(){
   const open=db.deals.filter(isOpen);
@@ -659,9 +693,9 @@ function editContact(id){
   const c=db.contacts.find(x=>x.id===id)||{estado:'Lead'};
   const rel=id?`<div class="rel w" style="grid-column:1/-1">${db.deals.filter(d=>d.contacto===id).length} negócio(s) e ${db.tasks.filter(t=>t.contacto===id).length} tarefa(s) associados.</div>`:'';
   modal(id?'Editar contacto':'Novo contacto',
-    inp('Nome','f_nome',c.nome,'text','w')+inp('Empresa','f_emp',c.empresa)+inp('Cargo','f_cargo',c.cargo)+inp('Email','f_email',c.email,'email')+inp('Telefone','f_tel',c.tel,'tel')+inp('Cidade','f_cid',c.cidade)+sel('Estado','f_est',opt(STATUS,c.estado))+`<label class="w">Notas<textarea id="f_not">${esc(c.notas)}</textarea></label>`+respSel(c.responsavel)+(id&&waNum(c.tel)?`<div class="w"><button type="button" class="wa" data-a="wa" data-id="${id}">${WA_ICO}Enviar WhatsApp</button></div>`:'')+rel,
+    inp('Nome','f_nome',c.nome,'text','w')+inp('Empresa','f_emp',c.empresa)+inp('Cargo','f_cargo',c.cargo)+inp('Email','f_email',c.email,'email')+inp('Telefone','f_tel',c.tel,'tel')+inp('Cidade','f_cid',c.cidade)+sel('Estado','f_est',opt(STATUS,c.estado))+sel('Origem','f_ori','<option value="">—</option>'+opt(ORIGENS,c.origem||''))+inp('Próximo contacto','f_prox',c.proximo_contacto||'','date')+`<label class="w">Notas<textarea id="f_not">${esc(c.notas)}</textarea></label>`+respSel(c.responsavel)+(id?`<div class="w" style="display:flex;gap:8px;flex-wrap:wrap">${callHref(c)?`<a class="wa" data-a="call" data-id="${id}" href="${callHref(c)}">Ligar</a>`:''}${waNum(c.tel)?`<button type="button" class="wa" data-a="wa" data-id="${id}">${WA_ICO}Enviar WhatsApp</button>`:''}<button type="button" class="btn" data-a="logc" data-id="${id}">Registar contacto</button></div>`:'')+histHTML(id)+rel,
     g=>{if(reqName(g,'f_nome','Indica o nome')===false)return false;
-      const o={nome:g('f_nome'),empresa:g('f_emp'),cargo:g('f_cargo'),email:g('f_email'),tel:g('f_tel'),cidade:g('f_cid'),estado:g('f_est'),notas:g('f_not'),...(isMgr()?{responsavel:g('f_resp')}:{})};
+      const o={nome:g('f_nome'),empresa:g('f_emp'),cargo:g('f_cargo'),email:g('f_email'),tel:g('f_tel'),cidade:g('f_cid'),estado:g('f_est'),origem:g('f_ori'),proximo_contacto:g('f_prox')||null,notas:g('f_not'),...(isMgr()?{responsavel:g('f_resp')}:{})};
       let obj;if(id){obj=Object.assign(db.contacts.find(x=>x.id===id),o)}else{obj={id:uid(),...o};db.contacts.unshift(obj)}touch('contacts',obj)},
     id&&isMgr()&&(()=>{drop('contacts',id);db.contacts=db.contacts.filter(x=>x.id!==id);db.deals.forEach(d=>{if(d.contacto===id)d.contacto=''});db.tasks.forEach(t=>{if(t.contacto===id)t.contacto=''})}));
 }
@@ -742,8 +776,10 @@ document.addEventListener('click',e=>{
   if(a==='mypw'){editPw();return}
   if(a==='newk'){newKey();return}
   if(a==='rmk'){if(!el.dataset.s){el.dataset.s=1;el.textContent='Confirmar';return}sb.from('api_chaves').delete().eq('id',id).then(r=>{if(r.error)toast('Não foi possível apagar',true);else{db.chaves=db.chaves.filter(x=>x.id!==id);render()}});return}
+  if(a==='call'){ui.callPending=id;return}
+  if(a==='logc'){closeM();logContact(id);return}
   if(a==='wa'){openWA(id,el.dataset.deal);return}
-  if(a==='wago'){const c=db.contacts.find(x=>x.id===id);if(c){c.ultimo_contacto=new Date().toISOString();touch('contacts',c);save()}setTimeout(()=>{closeM();render()},150);return}
+  if(a==='wago'){const c=db.contacts.find(x=>x.id===id);if(c){c.ultimo_contacto=new Date().toISOString();touch('contacts',c);const o={id:uid(),contacto_id:id,tipo:'whatsapp',resultado:'',nota:'Mensagem aberta no WhatsApp',criado_em:c.ultimo_contacto,responsavel:me.email};db.inter.unshift(o);touch('inter',o);save()}setTimeout(()=>{closeM();render()},150);return}
   if(a==='qadd'){$('#qitens').insertAdjacentHTML('beforeend',qrow({descricao:'',qtd:1,preco:0}));updTot();return}
   if(a==='qdel'){el.closest('.qi').remove();updTot();return}
   if(a==='qprint'){const f=$('#mf');showDoc(readQuoteForm(f._base||{}));return}
@@ -905,6 +941,7 @@ document.addEventListener('submit',async e=>{
   }
 });
 sb.auth.onAuthStateChange((ev)=>{if(ev==='PASSWORD_RECOVERY'){showNewPw();return}if(ev==='SIGNED_OUT'){db=DB0();queue=[];offline=false;netBanner();location.replace('index.html')}});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&ui.callPending&&!$('#app').hidden){const cid=ui.callPending;ui.callPending=null;setTimeout(()=>{if(!$('#modal').innerHTML)logContact(cid,'chamada')},400)}});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&(queue.length||Date.now()-lastLoad>60000))sync()});
 addEventListener('online',()=>{sync()});
 addEventListener('offline',()=>{offline=true;netBanner()});
