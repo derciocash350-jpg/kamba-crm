@@ -115,6 +115,7 @@ tbody tr{cursor:pointer}tbody tr:hover{background:var(--accent-soft)}
 .hojec .wa{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.35);color:#fff}
 .hojec .big{font:700 30px var(--f-display);line-height:1.1}
 .chip.late{background:var(--bad-soft);color:var(--bad)}
+@media (min-width:701px){.hojec .list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 20px}.hojec .it{border-top:0;border-bottom:1px solid rgba(255,255,255,.22)}.hojec .it .wa{margin-top:2px}}
 .ov{position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(8,16,15,.55);display:flex;align-items:flex-start;justify-content:center;padding:max(16px,env(safe-area-inset-top,0px)) 16px 16px;overflow-y:auto;z-index:20}
 .modal{background:var(--surface);border-radius:14px;width:100%;max-width:520px;padding:20px;margin-top:4vh;box-shadow:var(--shadow);border:1px solid var(--line)}
 .modal h2{font-size:20px;margin-bottom:14px}
@@ -817,7 +818,7 @@ function vDash(){
   const parados=db.contacts.filter(c=>c.estado==='Lead'&&!c.proximo_contacto&&(c.ultimo_contacto||c.criado_em)&&Date.now()-new Date(c.ultimo_contacto||c.criado_em).getTime()>7*DAY).sort((a,b)=>String(a.ultimo_contacto||a.criado_em).localeCompare(String(b.ultimo_contacto||b.criado_em)));
   const nt=db.tasks.filter(t=>!t.feito).sort((a,b)=>a.data.localeCompare(b.data)).slice(0,5);
   return`<div class="head"><div><h1>${saudacao()}</h1><p>${isMgr()?'Resumo das vendas':'Os teus números'} em ${new Date().toLocaleDateString('pt-PT',{day:'numeric',month:'long',year:'numeric'})}</p></div></div>
-  ${isMob()?hojeCard(dev,od):''}
+  ${hojeCard(dev,od)}
   <div class="kpis">
     <div class="card kpi"><div class="l">Ganho este mês</div><div class="v" data-n="${gm}" data-f="kzc">${kzc(gm)}</div><div class="d">${varHTML(gm,gp,'face ao mês anterior')}</div></div>
     <div class="card kpi"><div class="l">Receita prevista</div><div class="v" data-n="${fc}" data-f="kzc">${kzc(fc)}</div><div class="s">ponderada pela etapa</div></div>
