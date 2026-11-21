@@ -104,6 +104,17 @@ tbody tr{cursor:pointer}tbody tr:hover{background:var(--accent-soft)}
 .seg button{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:6px 14px;cursor:pointer}
 .seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .empty{padding:28px 12px;text-align:center;color:var(--muted)}
+.empty::before{content:"";display:block;width:56px;height:56px;margin:0 auto 12px;border-radius:50%;background:var(--accent-soft) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 24 24' fill='none' stroke='%230d7a6e' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z'/%3E%3C/svg%3E") center/28px no-repeat}
+.card{transition:border-color .15s,box-shadow .15s}
+.kpi .v{font-variant-numeric:tabular-nums}
+.hojec{background:linear-gradient(135deg,var(--accent),#0b4f48);color:#fff;border:0;margin-bottom:12px}
+.hojec h2{font-size:17px;color:#fff}
+.hojec .m,.hojec .t{color:#fff}
+.hojec .m{opacity:.8}
+.hojec .it{border-color:rgba(255,255,255,.22)}
+.hojec .wa{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.35);color:#fff}
+.hojec .big{font:700 30px var(--f-display);line-height:1.1}
+.chip.late{background:var(--bad-soft);color:var(--bad)}
 .ov{position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(8,16,15,.55);display:flex;align-items:flex-start;justify-content:center;padding:max(16px,env(safe-area-inset-top,0px)) 16px 16px;overflow-y:auto;z-index:20}
 .modal{background:var(--surface);border-radius:14px;width:100%;max-width:520px;padding:20px;margin-top:4vh;box-shadow:var(--shadow);border:1px solid var(--line)}
 .modal h2{font-size:20px;margin-bottom:14px}
@@ -263,7 +274,7 @@ html.mob,.mob body{overflow-x:hidden}
   <aside class="side">
     <div class="brand"><img src="assets/favicon.svg" width="30" height="30" alt="" style="border-radius:8px;flex:none">Kamba CRM</div>
     <nav id="nav"></nav>
-    <div class="who"><span id="who"></span><button class="btn" data-a="perfil">O meu perfil</button><button class="btn" data-a="out">Sair</button><a class="link" href="index.html" style="text-decoration:none">Página de vendas</a></div>
+    <div class="who"><span id="who"></span><button class="btn" data-a="perfil">O meu perfil</button><button class="btn" data-a="tema">Aspeto: auto</button><button class="btn" data-a="out">Sair</button><a class="link" href="index.html" style="text-decoration:none">Página de vendas</a></div>
   </aside>
   <main id="main"></main>
   <nav id="tabbar" aria-label="Navegação"></nav>
@@ -284,6 +295,13 @@ const MQ=window.matchMedia?matchMedia('(max-width:700px)'):{matches:false};
 const isMob=()=>!!MQ.matches;
 function setMob(){document.documentElement.classList.toggle('mob',isMob())}
 setMob();
+const TEMAS=['auto','claro','escuro'];
+function getTema(){try{return localStorage.getItem('kamba-tema')||'auto'}catch(e){return'auto'}}
+function applyTema(t){const r=document.documentElement;if(t==='claro')r.setAttribute('data-theme','light');else if(t==='escuro')r.setAttribute('data-theme','dark');else r.removeAttribute('data-theme');
+  try{localStorage.setItem('kamba-tema',t)}catch(e){}
+  const dark=t==='escuro'||(t==='auto'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches),m=document.querySelector('meta[name=theme-color]');if(m)m.setAttribute('content',dark?'#0e1716':'#0d7a6e')}
+applyTema(getTema());
+function nextTema(){const t=TEMAS[(TEMAS.indexOf(getTema())+1)%3];applyTema(t);toast('Aspeto: '+t);const b=document.querySelector('[data-a="tema"]');if(b)b.textContent='Aspeto: '+t}
 (function(){const f=()=>{const was=document.documentElement.classList.contains('mob');setMob();if(was!==isMob()&&typeof render==='function'&&$('#app')&&!$('#app').hidden){render()}};if(MQ.addEventListener)MQ.addEventListener('change',f);else if(MQ.addListener)MQ.addListener(f)})();
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid=()=>crypto.randomUUID?crypto.randomUUID():'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=crypto.getRandomValues(new Uint8Array(1))[0]&15;return(c==='x'?r:(r&3|8)).toString(16)});
@@ -485,15 +503,25 @@ function moreSheet(){
   const v=n=>VIEWS.filter(x=>x[0]===n)[0];
   $('#modal').innerHTML=`<div class="ov" data-a="close"><div class="modal sheet"><h2 style="font-size:17px">${esc(me.email||'')}</h2><p class="m" style="margin:0 0 8px;font-size:13px">${esc(PAPEL[me.papel]||'')}${db.empresa&&db.empresa.nome?' · '+esc(db.empresa.nome):''}</p>`
   +B('M16 11a4 4 0 10-8 0 4 4 0 008 0zM4 21c0-4 4-6 8-6s8 2 8 6','O meu perfil','perfil',1)+B(v('orcamentos')[2],'Orçamentos','go','orcamentos')+B(v('equipa')[2],'Equipa e definições','go','equipa')
-  +B('M12 3v12m0 0l-4-4m4 4l4-4M5 21h14','Importar contactos (CSV)','impc',1)+B('M12 15V3m0 0L8 7m4-4l4 4M5 21h14','Exportar contactos','expc',1)+B('M12 15V3m0 0L8 7m4-4l4 4M5 21h14','Exportar negócios','expd',1)
+  +`<button type="button" class="sb" data-a="tema">${IC('M12 3a9 9 0 109 9 7 7 0 01-9-9z')}Aspeto: ${getTema()}</button>`+B('M12 3v12m0 0l-4-4m4 4l4-4M5 21h14','Importar contactos (CSV)','impc',1)+B('M12 15V3m0 0L8 7m4-4l4 4M5 21h14','Exportar contactos','expc',1)+B('M12 15V3m0 0L8 7m4-4l4 4M5 21h14','Exportar negócios','expd',1)
   +`<a class="sb" href="index.html" style="text-decoration:none">${IC('M3 12l9-9 9 9M5 10v10h14V10')}Página de vendas</a>`
   +B('M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9','Terminar sessão','askout',1,'bad')+`</div></div>`;
 }
+const FMT={kzc:kzc,int:n=>String(Math.round(n)),pct:n=>Math.round(n)+'%'};
+let lastAnim='';
+function animNums(){
+  const k=ui.view+'|'+(db.deals.length)+'|'+(db.contacts.length);if(lastAnim===k)return;lastAnim=k;
+  if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  const els=[].slice.call(document.querySelectorAll('[data-n]'));if(!els.length||!window.requestAnimationFrame)return;
+  const t0=performance.now(),D=600;
+  (function step(t){const q=Math.min(1,(t-t0)/D),e=1-Math.pow(1-q,3);els.forEach(el=>{const f=FMT[el.dataset.f]||FMT.int;el.textContent=f(Number(el.dataset.n)*e)});if(q<1)requestAnimationFrame(step);else els.forEach(el=>{el.textContent=(FMT[el.dataset.f]||FMT.int)(Number(el.dataset.n))})})(t0)
+}
 function render(){
-  renderNav();mobChrome();
+  renderNav();mobChrome();{const tb=document.querySelector('.who [data-a="tema"]');if(tb)tb.textContent='Aspeto: '+getTema()}
   const v=ui.view;
   $('#main').innerHTML=planBanner()+(v==='dashboard'?vDash():v==='contactos'?vContacts():v==='pipeline'?vPipe():v==='orcamentos'?vQuotes():v==='equipa'?vTeam():vTasks());
   if(v==='contactos')listContacts();
+  if(v==='dashboard')animNums();
   if(!$('#app').hidden){clearTimeout(snapT);snapT=setTimeout(snap,400)}
 }
 function route(){const h=location.hash.slice(1);ui.view=VIEWS.some(v=>v[0]===h)?h:'dashboard';render()}
@@ -743,6 +771,13 @@ function revChart(ms,meta){
   if(meta>0)o+=`<line x1="0" x2="${W}" y1="${y(meta).toFixed(1)}" y2="${y(meta).toFixed(1)}" stroke-dasharray="5 4" style="stroke:var(--sun)"/><text x="${W}" y="${(y(meta)-5).toFixed(1)}" text-anchor="end" style="fill:var(--muted);font:${M?10:11}px var(--f-body)">meta ${kzc(meta).replace(' Kz','')}</text>`;
   return o+'</svg>'
 }
+function hojeCard(dev,od){
+  const t=today(),tk=db.tasks.filter(x=>!x.feito&&x.data<=t).sort((a,b)=>a.data.localeCompare(b.data));
+  const n=dev.length+tk.length;
+  if(!n)return`<div class="card hojec"><h2>Hoje</h2><p class="m" style="margin:6px 0 0">Tudo em dia. Boa! Aproveita para falar com novos leads.</p></div>`;
+  return`<div class="card hojec"><div style="display:flex;justify-content:space-between;align-items:flex-end;gap:10px"><div><h2>Hoje</h2><div class="m">${dev.length} para contactar · ${tk.length} tarefa${tk.length===1?'':'s'}${od?' ('+od+' em atraso)':''}</div></div><div class="big" data-n="${n}" data-f="int">${n}</div></div>
+  <div class="list" style="margin-top:8px">${dev.slice(0,3).map(c=>`<div class="it"><div class="grow"><div class="t">${esc(c.nome)}</div><div class="m">${esc(c.empresa||c.tel||'')}</div></div>${callHref(c)?`<a class="wa" data-a="call" data-id="${c.id}" href="${callHref(c)}">Ligar</a>`:''}${waNum(c.tel)?`<button type="button" class="wa" data-a="wa" data-id="${c.id}">${WA_ICO}WhatsApp</button>`:''}</div>`).join('')}${tk.slice(0,3).map(x=>`<a class="it" href="#tarefas" style="text-decoration:none"><div class="grow"><div class="t">${esc(x.titulo)}</div><div class="m">${esc(cname(x.contacto))}</div></div><span class="wa">${x.data<t?'Atrasada':'Hoje'}</span></a>`).join('')}</div></div>`
+}
 function vRev(){
   const per=[3,6,12].indexOf(ui.per)>=0?ui.per:6,now=new Date(),won=db.deals.filter(d=>d.etapa==='ganho');
   const by={};won.forEach(d=>{const k=gdate(d).slice(0,7);by[k]=(by[k]||0)+d.valor});
@@ -782,11 +817,12 @@ function vDash(){
   const parados=db.contacts.filter(c=>c.estado==='Lead'&&!c.proximo_contacto&&(c.ultimo_contacto||c.criado_em)&&Date.now()-new Date(c.ultimo_contacto||c.criado_em).getTime()>7*DAY).sort((a,b)=>String(a.ultimo_contacto||a.criado_em).localeCompare(String(b.ultimo_contacto||b.criado_em)));
   const nt=db.tasks.filter(t=>!t.feito).sort((a,b)=>a.data.localeCompare(b.data)).slice(0,5);
   return`<div class="head"><div><h1>${saudacao()}</h1><p>${isMgr()?'Resumo das vendas':'Os teus números'} em ${new Date().toLocaleDateString('pt-PT',{day:'numeric',month:'long',year:'numeric'})}</p></div></div>
+  ${isMob()?hojeCard(dev,od):''}
   <div class="kpis">
-    <div class="card kpi"><div class="l">Ganho este mês</div><div class="v">${kzc(gm)}</div><div class="d">${varHTML(gm,gp,'face ao mês anterior')}</div></div>
-    <div class="card kpi"><div class="l">Receita prevista</div><div class="v">${kzc(fc)}</div><div class="s">ponderada pela etapa</div></div>
-    <div class="card kpi"><div class="l">Negócios abertos</div><div class="v">${open.length}</div><div class="s">${kzc(open.reduce((a,d)=>a+d.valor,0))} em carteira</div></div>
-    <div class="card kpi"><div class="l">Taxa de conversão</div><div class="v">${conv}%</div><div class="s">${won.length} ganhos, ${lost.length} perdidos</div></div>
+    <div class="card kpi"><div class="l">Ganho este mês</div><div class="v" data-n="${gm}" data-f="kzc">${kzc(gm)}</div><div class="d">${varHTML(gm,gp,'face ao mês anterior')}</div></div>
+    <div class="card kpi"><div class="l">Receita prevista</div><div class="v" data-n="${fc}" data-f="kzc">${kzc(fc)}</div><div class="s">ponderada pela etapa</div></div>
+    <div class="card kpi"><div class="l">Negócios abertos</div><div class="v" data-n="${open.length}" data-f="int">${open.length}</div><div class="s">${kzc(open.reduce((a,d)=>a+d.valor,0))} em carteira</div></div>
+    <div class="card kpi"><div class="l">Taxa de conversão</div><div class="v" data-n="${conv}" data-f="pct">${conv}%</div><div class="s">${won.length} ganhos, ${lost.length} perdidos</div></div>
     <div class="card kpi"><div class="l">Contactos novos hoje</div><div class="v">${hoje}</div><div class="s">${db.contacts.length} contactos no total</div></div>
     <div class="card kpi"><div class="l">Tarefas em atraso</div><div class="v" style="color:${od?'var(--bad)':'inherit'}">${od}</div><div class="s">${db.tasks.filter(t=>!t.feito).length} pendentes no total</div></div>
   </div>
@@ -847,7 +883,7 @@ function vPipe(){
   const stg=STAGES.some(x=>x.id===ui.stage)?ui.stage:STAGES[0].id;
   return`<div class="head"><div><h1>Pipeline</h1><p>${open.length} negócios abertos. ${isMob()?'Escolhe a etapa e muda-a em cada cartão.':'Arrasta os cartões entre colunas para mudar de etapa.'}</p></div><div class="acts" style="margin:0"><button class="btn" data-a="expd">Exportar</button><button class="btn pri" data-a="newd">Novo negócio</button></div></div>
   ${isMob()?`<div class="stgs" role="tablist">${STAGES.map(s=>`<button type="button" data-a="stg" data-id="${s.id}" aria-pressed="${stg===s.id}"><i style="width:9px;height:9px;border-radius:50%;background:${s.cor};display:inline-block"></i>${s.nome} ${db.deals.filter(d=>d.etapa===s.id).length}</button>`).join('')}</div>`:''}
-  <div class="board">${STAGES.filter(s=>!isMob()||s.id===stg).map(s=>{const ds=db.deals.filter(d=>d.etapa===s.id);return`<div class="col" data-stage="${s.id}"><h3><span style="display:flex;align-items:center;gap:7px"><i style="width:9px;height:9px;border-radius:50%;background:${s.cor};display:inline-block"></i>${s.nome}</span><span class="tot">${ds.length} · ${kzc(ds.reduce((a,d)=>a+d.valor,0))}</span></h3>${ds.map(d=>`<div class="deal" ${isMob()?'':'draggable="true" '}data-a="editd" data-id="${d.id}"><div class="t">${esc(d.titulo)}</div><div class="m">${esc(ccomp(d.contacto)||'Sem empresa')}${d.contacto?' · '+esc(cname(d.contacto)):''}</div><div class="val">${kz(d.valor)}</div><div class="m">Fecho previsto ${fdate(d.fecho)}${isMgr()&&d.responsavel?' · '+esc(d.responsavel.split('@')[0]):''}</div>${d.contacto&&waNum((db.contacts.find(c=>c.id===d.contacto)||{}).tel)?`<button type="button" class="wa" data-a="wa" data-id="${d.contacto}" data-deal="${d.id}" aria-label="Enviar WhatsApp sobre ${esc(d.titulo)}">${WA_ICO}WhatsApp</button>`:''}<select class="mv" data-a="mv" data-id="${d.id}" aria-label="Mover para outra etapa">${opt(STAGES,d.etapa,x=>[x.id,'Mover para: '+x.nome])}</select></div>`).join('')}</div>`}).join('')}</div>`;
+  <div class="board">${STAGES.filter(s=>!isMob()||s.id===stg).map(s=>{const ds=db.deals.filter(d=>d.etapa===s.id);return`<div class="col" data-stage="${s.id}"><h3><span style="display:flex;align-items:center;gap:7px"><i style="width:9px;height:9px;border-radius:50%;background:${s.cor};display:inline-block"></i>${s.nome}</span><span class="tot">${ds.length} · ${kzc(ds.reduce((a,d)=>a+d.valor,0))}</span></h3>${ds.map(d=>`<div class="deal" ${isMob()?'':'draggable="true" '}data-a="editd" data-id="${d.id}"><div class="t">${esc(d.titulo)}</div><div class="m">${esc(ccomp(d.contacto)||'Sem empresa')}${d.contacto?' · '+esc(cname(d.contacto)):''}</div><div class="val">${kz(d.valor)}</div>${isOpen(d)&&d.fecho&&d.fecho<today()?'<div><span class="chip late">Fecho atrasado</span></div>':''}<div class="m">Fecho previsto ${fdate(d.fecho)}${isMgr()&&d.responsavel?' · '+esc(d.responsavel.split('@')[0]):''}</div>${d.contacto&&waNum((db.contacts.find(c=>c.id===d.contacto)||{}).tel)?`<button type="button" class="wa" data-a="wa" data-id="${d.contacto}" data-deal="${d.id}" aria-label="Enviar WhatsApp sobre ${esc(d.titulo)}">${WA_ICO}WhatsApp</button>`:''}<select class="mv" data-a="mv" data-id="${d.id}" aria-label="Mover para outra etapa">${opt(STAGES,d.etapa,x=>[x.id,'Mover para: '+x.nome])}</select></div>`).join('')}</div>`}).join('')}</div>`;
 }
 function vTasks(){
   const f=ui.tf;
@@ -1046,6 +1082,7 @@ document.addEventListener('click',e=>{
   if(el.dataset.x)closeM();
   if(a==='more'){moreSheet();return}
   if(a==='perfil'){editPerfil();return}
+  if(a==='tema'){nextTema();return}
   if(a==='go'){location.hash=id;return}
   if(a==='per'){ui.per=+id;render();return}
   if(a==='meta'){editEmpresa();return}
