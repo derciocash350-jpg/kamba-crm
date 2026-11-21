@@ -405,8 +405,9 @@ async function loadAll(){
     pl?sb.from('pedidos_demo').select('*').order('criado_em',{ascending:false}).limit(50):null,
     pl?sb.rpc('resumo_empresas'):null,
     pl?sb.rpc('pedidos_plano_pendentes'):null,
-    sb.from('perfis').select('*')];
-  const[c,d,t,e,o,em,cf,it,au,pp,k,p,r,q,pf]=await Promise.all(Q);
+    sb.from('perfis').select('*'),
+    pl?sb.rpc('contactos_empresas'):null];
+  const[c,d,t,e,o,em,cf,it,au,pp,k,p,r,q,pf,ce]=await Promise.all(Q);
   const err=c.error||d.error||t.error||e.error||o.error||em.error;
   if(err){if(isNet(err)){offline=true;netBanner()}else toast('Erro ao carregar dados: '+err.message,true);return false}
   db.contacts=c.data;db.deals=d.data.map(fromRow.deals);db.tasks=t.data.map(fromRow.tasks);db.team=e.data;
@@ -415,7 +416,7 @@ async function loadAll(){
   db.instrucoes=(cf&&!cf.error&&cf.data&&cf.data[0]&&cf.data[0].instrucoes_pagamento)||'';
   db.pedPlano=(pp&&!pp.error&&pp.data||[]).filter(x=>x.empresa_id===db.empresa.id);
   db.chaves=(db.empresa.plano==='empresa'&&k&&!k.error&&k.data)||[];
-  db.pedidos=(p&&!p.error&&p.data)||[];db.empresas=(r&&!r.error&&r.data)||[];db.pend=(q&&!q.error&&q.data)||[];
+  db.pedidos=(p&&!p.error&&p.data)||[];db.empresas=(r&&!r.error&&r.data)||[];(function(){const m={};((ce&&!ce.error&&ce.data)||[]).forEach(x=>{m[x.id]=x});db.empresas.forEach(x=>{const c=m[x.id]||{};x.responsavel=c.responsavel||'';x.telefone=c.telefone||''})})();db.pend=(q&&!q.error&&q.data)||[];
   offline=false;netBanner();snap();lastLoad=Date.now();
   return true;
 }
@@ -607,8 +608,16 @@ ${adm?planoCard():''}
   ${adm?autoCard()+capturaCard():''}
   ${adm?`<div class="card" style="margin-top:12px"><h2>Dados da empresa</h2><p class="m" style="font-size:13px;margin:0 0 8px">Aparecem no topo dos orçamentos.</p>${E.nome?`<div style="font-size:14px"><b>${esc(E.nome)}</b>${E.nif?' · NIF '+esc(E.nif):''}<div class="m">${esc([E.endereco,E.telefone,E.email].filter(Boolean).join(' · '))}</div><div class="m">IVA ${E.iva_pct}% · validade ${E.validade_dias} dias</div></div>`:'<div class="m">Ainda por preencher.</div>'}<div class="acts" style="justify-content:flex-start"><button class="btn" data-a="editemp">${E.nome?'Editar':'Preencher'}</button></div></div>`:''}
   ${adm?`<div class="card" style="margin-top:12px"><h2>API</h2>${E.plano==='empresa'?`<p class="m" style="font-size:13px;margin:0 0 8px">Para ligar outros sistemas aos dados da tua empresa. Envia a chave no cabeçalho <code>x-api-key</code>. Nunca a coloques no site.</p>${db.chaves.length?`<div class="list">${db.chaves.map(k=>`<div class="it"><div class="grow"><div class="t">${esc(k.nome||'Chave')}</div><div class="m">${esc(k.prefixo)}… · criada em ${new Date(k.criado_em).toLocaleDateString('pt-PT')}</div></div><button class="btn bad" data-a="rmk" data-id="${esc(k.id)}">Apagar</button></div>`).join('')}</div>`:''}<div class="acts" style="justify-content:flex-start"><button class="btn" data-a="newk">Criar chave de API</button></div><div class="tw"><pre style="margin:8px 0 0;padding:12px;font-size:12px;white-space:pre;overflow-x:auto">curl ${esc(api)}/contactos \\\n  -H "x-api-key: A_TUA_CHAVE"</pre></div><p class="m" style="font-size:12px;margin:8px 0 0">Recursos: contactos, negocios e tarefas. Métodos: GET, POST, PATCH e DELETE.</p>`:'<p class="m" style="font-size:13px;margin:0">A API está disponível no plano Empresa.</p>'}</div>`:''}
-  ${me.plataforma?`${platCard()}<div class="card" style="margin-top:12px"><h2>Plataforma · empresas</h2><div class="list">${db.empresas.map(x=>`<div class="it"><div class="grow"><div class="t">${esc(x.nome)}</div><div class="m">${x.utilizadores} utilizador(es) · desde ${new Date(x.criado_em).toLocaleDateString('pt-PT')}${x.fim?(()=>{const d=Math.ceil((new Date(x.fim).getTime()-Date.now())/DAY);return' · '+(d<0?'<b style="color:var(--bad)">terminou há '+(-d)+' dia(s)</b>':d<=3?'<b style="color:var(--warn)">termina em '+d+' dia(s)</b>':'termina em '+fmtD(x.fim))})():''}${x.admin_email?' · <a href="mailto:'+esc(x.admin_email)+'">'+esc(x.admin_email)+'</a>':''}</div></div><select data-a="plano" data-id="${esc(x.id)}" aria-label="Plano de ${esc(x.nome)}">${opt(Object.keys(PLANOS),x.plano,k=>[k,PLANOS[k]])}</select></div>`).join('')||'<div class="m">Ainda não há empresas.</div>'}</div></div>
+  ${me.plataforma?`${platCard()}<div class="card" style="margin-top:12px"><h2>Plataforma · empresas</h2><div class="list">${db.empresas.map(x=>`<div class="it"><div class="grow"><div class="t">${esc(x.nome)}</div><div class="m">${x.utilizadores} utilizador(es) · desde ${new Date(x.criado_em).toLocaleDateString('pt-PT')}${x.fim?(()=>{const d=Math.ceil((new Date(x.fim).getTime()-Date.now())/DAY);return' · '+(d<0?'<b style="color:var(--bad)">terminou há '+(-d)+' dia(s)</b>':d<=3?'<b style="color:var(--warn)">termina em '+d+' dia(s)</b>':'termina em '+fmtD(x.fim))})():''}${x.admin_email?' · <a href="mailto:'+esc(x.admin_email)+'">'+esc(x.admin_email)+'</a>':''}</div></div>${avisoWA(x)}<select data-a="plano" data-id="${esc(x.id)}" aria-label="Plano de ${esc(x.nome)}">${opt(Object.keys(PLANOS),x.plano,k=>[k,PLANOS[k]])}</select></div>`).join('')||'<div class="m">Ainda não há empresas.</div>'}</div></div>
   <div class="card" style="margin-top:12px"><h2>Pedidos de demonstração</h2>${db.pedidos.length?`<div class="list">${db.pedidos.map(p=>`<div class="it"><div class="grow"><div class="t">${esc(p.nome)}${p.empresa?' · '+esc(p.empresa):''}</div><div class="m">${esc(p.email)}${p.telefone?' · '+esc(p.telefone):''} · ${new Date(p.criado_em).toLocaleDateString('pt-PT')}</div>${p.mensagem?`<div class="m" style="margin-top:2px">${esc(p.mensagem)}</div>`:''}</div><button class="btn" data-a="rmp" data-id="${esc(p.id)}">Remover</button></div>`).join('')}</div>`:'<div class="m">Ainda não há pedidos. Os que chegarem pela página de vendas aparecem aqui.</div>'}</div>`:''}`;
+}
+function avisoWA(x){
+  if(!x.fim)return'';const d=Math.ceil((new Date(x.fim).getTime()-Date.now())/DAY);if(d>3)return'';
+  const n=waNum(x.telefone);if(!n)return'<span class="m" style="font-size:12px">sem telefone</span>';
+  const nome=(x.responsavel||'').split(' ')[0],url=new URL('app.html',location.href).href;
+  const quando=d<0?'terminou':d===0?'termina hoje':'termina em '+d+' dia'+(d===1?'':'s');
+  const t='Olá'+(nome?' '+nome:'')+', o teste da '+x.nome+' no Kamba CRM '+quando+'. Para continuares a criar contactos e negócios, escolhe um plano em Equipa > Plano ('+url+'). Os teus dados ficam guardados. Qualquer dúvida, estou aqui.';
+  return'<a class="btn" style="text-decoration:none;white-space:nowrap" target="_blank" rel="noopener" href="https://wa.me/'+n+'?text='+encodeURIComponent(t)+'">'+WA_ICO+' Avisar</a>'
 }
 const WA_ICO='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 01-12.4 7.4L3 20.5l1.7-5.4A8.4 8.4 0 1121 11.5z"/></svg>';
 function waNum(t){let d=String(t||'').replace(/\D/g,'');if(d.startsWith('00'))d=d.slice(2);if(d.length===9&&d[0]==='9')d='244'+d;return d.length>=11&&d.length<=15?d:''}
