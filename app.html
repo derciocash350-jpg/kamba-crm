@@ -14,20 +14,26 @@
 <style>
 /* Layout: barra lateral fixa + área de trabalho; em ecrãs estreitos a barra passa para o topo */
 :root{
-  --bg:#f3f6f6; --surface:#ffffff; --fg:#13201e; --muted:#5d6e6b; --line:#dce4e3;
-  --accent:#0d7a6e; --accent-ink:#ffffff; --accent-soft:#dff1ee;
+  --bg:#f4f5fb; --surface:#ffffff; --fg:#191c33; --muted:#6a6f8c; --line:#e5e7f2;
+  --accent:#0d7a6e; --accent-ink:#ffffff; --accent-soft:#e0f2ef;
+  --violet:#6d4aff; --violet-2:#b8a5ff; --violet-soft:#efebff;
+  --navy:#171a38; --navy-2:#20245a; --navy-fg:#c5c9e6; --sun:#e8a21b;
   --good:#1a7f4b; --good-soft:#dcf2e5; --warn:#a15c07; --warn-soft:#fbecd2; --bad:#b4332b; --bad-soft:#fbe0dd;
-  --shadow:0 1px 2px rgba(19,32,30,.06),0 8px 24px rgba(19,32,30,.06);
+  --shadow:0 1px 2px rgba(25,28,51,.05),0 8px 24px rgba(25,28,51,.06);
   --f-display:'Space Grotesk',system-ui,sans-serif; --f-body:'Inter',system-ui,sans-serif;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#0e1716; --surface:#152220; --fg:#e6f0ee; --muted:#93a8a4; --line:#263a37;
+  --bg:#0e1124; --surface:#171b36; --fg:#e8eaf8; --muted:#9a9fc4; --line:#2a2f55;
   --accent:#3fc5b4; --accent-ink:#06211d; --accent-soft:#18403b;
+  --violet:#9b86ff; --violet-2:#6d4aff; --violet-soft:#262050;
+  --navy:#0a0c1d; --navy-2:#1a1e44; --navy-fg:#b4b9dd;
   --good:#5fd394; --good-soft:#163a28; --warn:#f0b75a; --warn-soft:#3d2d10; --bad:#ff8c82; --bad-soft:#431b18;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#0e1716; --surface:#152220; --fg:#e6f0ee; --muted:#93a8a4; --line:#263a37;
+  --bg:#0e1124; --surface:#171b36; --fg:#e8eaf8; --muted:#9a9fc4; --line:#2a2f55;
   --accent:#3fc5b4; --accent-ink:#06211d; --accent-soft:#18403b;
+  --violet:#9b86ff; --violet-2:#6d4aff; --violet-soft:#262050;
+  --navy:#0a0c1d; --navy-2:#1a1e44; --navy-fg:#b4b9dd;
   --good:#5fd394; --good-soft:#163a28; --warn:#f0b75a; --warn-soft:#3d2d10; --bad:#ff8c82; --bad-soft:#431b18;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);color-scheme:dark}
 *{box-sizing:border-box}
@@ -66,7 +72,7 @@ main{min-width:0}
 .fun{display:grid;gap:10px}
 .fun .r{display:grid;grid-template-columns:110px 1fr 110px;gap:10px;align-items:center}
 .fun .bar{height:22px;background:var(--bg);border-radius:6px;overflow:hidden}
-.fun .bar b{display:block;height:100%;background:var(--accent);border-radius:6px;min-width:4px}
+.fun .bar b{display:block;height:100%;background:linear-gradient(90deg,var(--violet-2),var(--violet));border-radius:6px;min-width:4px}
 .fun .num{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
 .fun .cnt{font-size:12px;color:var(--muted)}
 .list{display:flex;flex-direction:column}
@@ -143,7 +149,7 @@ tbody tr{cursor:pointer}tbody tr:hover{background:var(--accent-soft)}
 .rev .bars rect{transform-box:fill-box;transform-origin:50% 100%}
 @media (prefers-reduced-motion:no-preference){.rev .bars rect{animation:grow .55s ease-out both}@keyframes grow{from{transform:scaleY(0)}}}
 .rev .gb{height:10px;border-radius:99px;background:var(--bg);overflow:hidden;border:1px solid var(--line)}
-.rev .gb b{display:block;height:100%;background:var(--accent);border-radius:99px}
+.rev .gb b{display:block;height:100%;background:linear-gradient(90deg,var(--violet-2),var(--violet));border-radius:99px}
 .rev .ph{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start;margin-bottom:10px}
 .rev .seg{margin:0}
 .kpi .d{font-size:12px;font-weight:600;margin-top:2px}
@@ -257,6 +263,7 @@ html.mob,.mob body{overflow-x:hidden}
 .modal.wide{max-width:780px}
 .wa{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:3px 9px;cursor:pointer;display:inline-flex;gap:6px;align-items:center;font-size:12px;margin-top:6px;color:var(--accent);font-weight:500}
 .wa:hover{border-color:var(--accent)}
+a.wa{text-decoration:none}
 .qh,.qi{display:grid;grid-template-columns:minmax(0,1fr) 72px 120px 36px;gap:6px;align-items:center}
 .qh{font-size:12px;color:var(--muted);margin-bottom:4px}
 .qi{margin-bottom:6px}
@@ -295,6 +302,86 @@ html.mob,.mob body{overflow-x:hidden}
   .doc th,.doc .tt .g{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   @page{margin:16mm}
 }
+
+/* ===== Visual "Nexus": menu azul-escuro, cartões suaves, gráficos violeta ===== */
+.card{border-radius:16px;box-shadow:0 1px 2px rgba(25,28,51,.04)}
+.btn{border-radius:10px}
+.av{background:var(--violet-soft);color:var(--violet)}
+.chip{background:var(--accent-soft)}
+.hojec{background:linear-gradient(135deg,#23275a,#5b3fd6);box-shadow:var(--shadow)}
+.kpi .l{text-transform:none;letter-spacing:0;font-size:13px;font-weight:500}
+.kpi .d{min-height:18px;margin-top:2px}
+.kpi .spark{display:block;width:100%;height:44px;margin:8px 0 4px}
+.kpis.mini{margin-top:-4px}
+.kpis.mini .kpi .v{font-size:22px}
+.vr.m{color:var(--muted);font-weight:500}
+.dg{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
+.dl,.dr{display:flex;flex-direction:column;gap:16px;min-width:0}
+.dl>.card,.dl>.grid2{margin:0!important}
+.dl>.rev{margin:0!important}
+.grid2.eq{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.ph2{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.ph2 h2{margin:0}
+.lgs{display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.lgs.c{justify-content:center;margin-top:6px}
+.lg{display:inline-flex;gap:6px;align-items:center}
+.lg i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.pill{border:1px solid var(--line);border-radius:8px;padding:3px 10px;color:var(--violet);background:var(--violet-soft);font-weight:500}
+.ac svg,.gg svg{width:100%;height:auto;display:block}
+.ac .hv:hover{fill:var(--violet);fill-opacity:.07}
+.gg svg{max-width:300px;margin:6px auto 0}
+.it.lead{cursor:pointer;border-radius:10px}
+.it.lead:hover{background:var(--accent-soft)}
+.it.lead svg{color:var(--muted);flex:none}
+.mt{cursor:pointer}
+.mt input[type=checkbox]{appearance:none;-webkit-appearance:none;width:20px;height:20px;border-radius:50%;border:2px solid var(--line);flex:none;cursor:pointer;display:grid;place-items:center;margin:0;background:var(--surface)}
+.mt input[type=checkbox]:checked{background:var(--good);border-color:var(--good)}
+.mt input[type=checkbox]:checked::after{content:"";width:5px;height:9px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.mob .spark{display:none}
+.mob .kpis.big .kpi:nth-child(3){grid-column:1/-1}
+.mob .kpis.mini{margin-top:0}
+.mob .dg{grid-template-columns:minmax(0,1fr)}
+@media (max-width:1180px){.dg{grid-template-columns:minmax(0,1fr)}}
+.topbar,.grp{display:none}
+@media (min-width:701px){
+  .list .it{flex-wrap:wrap;row-gap:6px}
+  .list .it .grow{flex:1 1 150px}
+  body{padding-left:0;padding-right:0}
+  #net{margin-inline:0}
+  .app{max-width:none;margin:0;padding:0;gap:0;grid-template-columns:240px minmax(0,1fr);min-height:100vh}
+  .side{position:sticky;top:0;height:100vh;align-self:start;background:var(--navy);color:var(--navy-fg);padding:22px 14px 16px;gap:14px;overflow-y:auto}
+  .side .brand{color:#fff;padding:0 8px 6px}
+  nav{gap:3px}
+  nav a{color:var(--navy-fg);padding:10px 12px;border-radius:10px}
+  nav a:hover{background:rgba(255,255,255,.07);color:#fff}
+  nav a[aria-current="page"]{background:rgba(155,134,255,.22);color:#fff;box-shadow:inset 3px 0 0 var(--violet-2)}
+  nav a .n{background:var(--bad);color:#fff;border-radius:99px;padding:0 7px;font-weight:600;opacity:1;line-height:18px}
+  .grp{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:#7e84ad;padding:16px 12px 4px}
+  .who{margin-top:auto;gap:10px;color:var(--navy-fg)}
+  .who .uc{display:flex;gap:10px;align-items:center;padding:10px;border-radius:12px;background:rgba(255,255,255,.06)}
+  .who .uc .av{background:var(--violet);color:#fff;width:36px;height:36px}
+  .who #who{display:flex;flex-direction:column;min-width:0;line-height:1.3}
+  .who #who b{color:#fff;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .who #who small{font-size:11px;color:var(--navy-fg);overflow:hidden;text-overflow:ellipsis}
+  .who .wb{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .who .wb .btn:last-child{grid-column:1/-1}
+  .who .btn{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.14);color:#fff;padding:6px 10px;font-size:12px}
+  .who .btn:hover{border-color:var(--violet-2)}
+  .who .link{color:var(--navy-fg);font-size:12px;padding:0 4px}
+  main{padding:0 32px 48px}
+  .topbar{display:flex;align-items:center;gap:12px;margin:0 -32px 22px;padding:14px 32px;background:var(--surface);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:6}
+  .topbar .grow{flex:1}
+  .sch{display:flex;gap:8px;align-items:center;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:0 12px;width:min(380px,100%);color:var(--muted)}
+  .sch input{border:0;background:none;outline:0;padding:9px 0;width:100%;color:var(--fg)}
+  .sch:focus-within{border-color:var(--accent)}
+  .ibtn{position:relative;width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--muted);display:grid;place-items:center;cursor:pointer}
+  .ibtn:hover{border-color:var(--accent);color:var(--fg)}
+  .ibtn b{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;border-radius:9px;background:var(--bad);color:#fff;font-size:10px;display:grid;place-items:center;padding:0 4px}
+  .btn.plus{width:38px;height:38px;padding:0;font-size:22px;line-height:1;display:grid;place-items:center}
+  .head h1{font-size:24px}
+  .kpi .v{font-size:28px}
+}
+@media (min-width:701px) and (max-width:860px){.app{grid-template-columns:200px minmax(0,1fr)}main{padding:0 20px 40px}.topbar{margin:0 -20px 18px;padding:12px 20px}}
 </style>
 
 </head>
@@ -306,7 +393,7 @@ html.mob,.mob body{overflow-x:hidden}
   <aside class="side">
     <div class="brand"><img src="assets/favicon.svg" width="30" height="30" alt="" style="border-radius:8px;flex:none">Kamba CRM</div>
     <nav id="nav"></nav>
-    <div class="who"><span id="who"></span><button class="btn" data-a="perfil">O meu perfil</button><button class="btn" data-a="tema">Aspeto: auto</button><button class="btn" data-a="out">Sair</button><a class="link" href="index.html" style="text-decoration:none">Página de vendas</a></div>
+    <div class="who"><div class="uc"><span class="av" id="whoav"></span><span id="who"></span></div><div class="wb"><button class="btn" data-a="perfil">O meu perfil</button><button class="btn" data-a="tema">Aspeto: auto</button><button class="btn" data-a="out">Sair</button></div><a class="link" href="index.html" style="text-decoration:none">Página de vendas</a></div>
   </aside>
   <main id="main"></main>
   <nav id="tabbar" aria-label="Navegação"></nav>
@@ -519,7 +606,8 @@ const overdue=t=>!t.feito&&t.data<today();
 
 function renderNav(){
   const pend=db.tasks.filter(t=>!t.feito).length;
-  $('#nav').innerHTML=VIEWS.map(([id,nm,p])=>`<a href="#${id}" ${ui.view===id?'aria-current="page"':''}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${p}"/></svg>${nm}${id==='tarefas'&&pend?`<span class="n">${pend}</span>`:''}</a>`).join('');
+  const GR={contactos:'Vendas',tarefas:'Trabalho',equipa:'Gestão'};
+  $('#nav').innerHTML=VIEWS.map(([id,nm,p])=>(GR[id]?`<div class="grp">${GR[id]}</div>`:'')+`<a href="#${id}" ${ui.view===id?'aria-current="page"':''}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${p}"/></svg>${nm}${id==='tarefas'&&pend?`<span class="n">${pend}</span>`:''}</a>`).join('');
 }
 const FABS={dashboard:['newc','Novo contacto'],contactos:['newc','Novo contacto'],pipeline:['newd','Novo negócio'],orcamentos:['newq','Novo orçamento'],tarefas:['newt','Nova tarefa'],cronograma:['newi','Nova iniciativa']};
 const IC=p=>`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${p}"/></svg>`;
@@ -549,10 +637,15 @@ function animNums(){
   const t0=performance.now(),D=600;
   (function step(t){const q=Math.min(1,(t-t0)/D),e=1-Math.pow(1-q,3);els.forEach(el=>{const f=FMT[el.dataset.f]||FMT.int;el.textContent=f(Number(el.dataset.n)*e)});if(q<1)requestAnimationFrame(step);else els.forEach(el=>{el.textContent=(FMT[el.dataset.f]||FMT.int)(Number(el.dataset.n))})})(t0)
 }
+function topbar(){
+  if(isMob())return'';
+  const pend=db.tasks.filter(t=>!t.feito).length,f=(ui.view==='cronograma'&&!isMgr())?null:FABS[ui.view];
+  return`<div class="topbar"><label class="sch"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="gq" type="text" role="searchbox" placeholder="Pesquisar contactos (Enter)" aria-label="Pesquisar contactos" autocomplete="off"></label><span class="grow"></span><button type="button" class="ibtn" data-a="go" data-id="tarefas" aria-label="Tarefas pendentes" title="Tarefas pendentes"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 1112 0c0 7 3 8 3 8H3s3-1 3-8M10 20a2 2 0 004 0"/></svg>${pend?`<b>${pend>99?'99+':pend}</b>`:''}</button>${f?`<button type="button" class="btn pri plus" data-a="topnew" aria-label="${f[1]}" title="${f[1]}">+</button>`:''}</div>`
+}
 function render(){
   renderNav();mobChrome();{const tb=document.querySelector('.who [data-a="tema"]');if(tb)tb.textContent='Aspeto: '+getTema()}
   const v=ui.view;
-  $('#main').innerHTML=planBanner()+(v==='dashboard'?vDash():v==='contactos'?vContacts():v==='pipeline'?vPipe():v==='orcamentos'?vQuotes():v==='equipa'?vTeam():v==='cronograma'?vPlan():vTasks());
+  $('#main').innerHTML=topbar()+planBanner()+(v==='dashboard'?vDash():v==='contactos'?vContacts():v==='pipeline'?vPipe():v==='orcamentos'?vQuotes():v==='equipa'?vTeam():v==='cronograma'?vPlan():vTasks());
   if(v==='contactos')listContacts();
   if(v==='dashboard')animNums();
   if(!$('#app').hidden){clearTimeout(snapT);snapT=setTimeout(snap,400)}
@@ -797,7 +890,7 @@ function revChart(ms,meta){
   o+=`<line x1="0" x2="${W}" y1="${T+ch}" y2="${T+ch}" style="stroke:var(--line)"/>`;
   o+='<g class="bars">';
   ms.forEach((m,i)=>{const x=L+i*(bw+gap),h=Math.max(m.v?3:0,ch*m.v/mx),last=i===n-1;
-    o+=`<rect x="${x.toFixed(1)}" y="${(T+ch-h).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="4" style="fill:var(--accent);opacity:${last?1:.55}"><title>${m.l}: ${kz(m.v)}</title></rect>`;
+    o+=`<rect x="${x.toFixed(1)}" y="${(T+ch-h).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="6" style="fill:var(--violet);opacity:${last?1:.5}"><title>${m.l}: ${kz(m.v)}</title></rect>`;
     if(m.v&&(!M||n<=6||last))o+=`<text x="${(x+bw/2).toFixed(1)}" y="${(T+ch-h-6).toFixed(1)}" text-anchor="middle" style="fill:var(--fg);font:600 ${M?11:12}px var(--f-body)">${kzc(m.v).replace(' Kz','')}</text>`;
     o+=`<text x="${(x+bw/2).toFixed(1)}" y="${H-8}" text-anchor="middle" style="fill:var(--muted);font:${M?10:12}px var(--f-body)">${m.l}</text>`});
   o+='</g>';
@@ -885,6 +978,42 @@ function vRev(){
   ${won.length?revChart(ms,meta):'<div class="empty" style="padding:26px 8px">Ainda sem negócios ganhos. Quando moveres um negócio para <b>Ganho</b>, a receita aparece aqui.</div>'}${goal}</div>
   <div class="grid2" style="margin-bottom:12px">${isMgr()?`<div class="card"><h2>Receita por vendedor</h2><div class="fun">${rk.length?bars(rk,pn):'<div class="m">Sem negócios ganhos neste período.</div>'}</div></div>`:''}<div class="card"><h2>Receita por origem</h2><div class="fun">${os.length?bars(os,k=>k):'<div class="m">Sem negócios ganhos neste período.</div>'}</div></div></div>`
 }
+function smooth(pts,H,lo){
+  if(pts.length<2)return'';
+  const cl=v=>Math.max(lo||0,Math.min(H,v)),f=v=>v.toFixed(1);
+  let d='M'+f(pts[0][0])+' '+f(pts[0][1]);
+  for(let i=0;i<pts.length-1;i++){
+    const p0=pts[i-1]||pts[i],p1=pts[i],p2=pts[i+1],p3=pts[i+2]||p2;
+    d+=' C'+f(p1[0]+(p2[0]-p0[0])/6)+' '+f(cl(p1[1]+(p2[1]-p0[1])/6))+' '+f(p2[0]-(p3[0]-p1[0])/6)+' '+f(cl(p2[1]-(p3[1]-p1[1])/6))+' '+f(p2[0])+' '+f(p2[1])}
+  return d
+}
+let _sid=0;
+function spark(vals,col){
+  const W=120,H=44,n=vals.length,mx=Math.max(...vals),mn=Math.min(...vals),rg=Math.max(1,mx-mn);
+  const pts=vals.map((v,i)=>[n>1?W*i/(n-1):W/2,H-5-(H-12)*(v-mn)/rg]),id='sp'+(++_sid),d=smooth(pts,H);
+  return`<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:${col};stop-opacity:.3"/><stop offset="1" style="stop-color:${col};stop-opacity:0"/></linearGradient></defs><path d="${d} L${W} ${H} L0 ${H}Z" fill="url(#${id})"/><path d="${d}" fill="none" stroke-width="2" vector-effect="non-scaling-stroke" style="stroke:${col}"/></svg>`
+}
+function areaChart(labels,series){
+  const W=640,H=232,L=30,R=10,T=14,B=28,n=labels.length,cw=W-L-R,ch=H-T-B;
+  const m0=Math.max(1,...series.flatMap(s=>s.v)),step=m0<=4?1:m0<=10?2:Math.ceil(m0/4),mx=Math.ceil(m0/step)*step;
+  const x=i=>L+cw*i/(n-1),y=v=>T+ch-ch*v/mx,id='ac'+(++_sid);
+  let o=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Novos contactos e negócios ganhos nos últimos ${n} dias"><defs>${series.map((s,k)=>`<linearGradient id="${id}${k}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:${s.c};stop-opacity:.26"/><stop offset="1" style="stop-color:${s.c};stop-opacity:0"/></linearGradient>`).join('')}</defs>`;
+  for(let g=0;g<=mx;g+=step)o+=`<line x1="${L}" x2="${W-R}" y1="${y(g).toFixed(1)}" y2="${y(g).toFixed(1)}" style="stroke:var(--line)"/><text x="${L-8}" y="${(y(g)+4).toFixed(1)}" text-anchor="end" style="fill:var(--muted);font:11px var(--f-body)">${g}</text>`;
+  series.forEach((s,k)=>{const pts=s.v.map((v,i)=>[x(i),y(v)]),d=smooth(pts,T+ch,T);
+    o+=`<path d="${d} L${x(n-1).toFixed(1)} ${T+ch} L${L} ${T+ch}Z" fill="url(#${id}${k})"/><path d="${d}" fill="none" stroke-width="2.5" stroke-linecap="round" style="stroke:${s.c}"/><circle cx="${x(n-1).toFixed(1)}" cy="${y(s.v[n-1]).toFixed(1)}" r="4" stroke-width="2" style="stroke:${s.c};fill:var(--surface)"/>`});
+  labels.forEach((l,i)=>{if(i%2===1)o+=`<text x="${x(i).toFixed(1)}" y="${H-8}" text-anchor="${i===n-1?'end':'middle'}" style="fill:var(--muted);font:11px var(--f-body)">${l}</text>`});
+  const bw=cw/(n-1);
+  labels.forEach((l,i)=>{o+=`<rect class="hv" x="${(x(i)-bw/2).toFixed(1)}" y="${T}" width="${bw.toFixed(1)}" height="${ch}" fill="transparent"><title>${l}: ${series.map(s=>s.v[i]+' '+s.n.toLowerCase()).join(' · ')}</title></rect>`});
+  return o+'</svg>'
+}
+function gauge(parts,centro,sub){
+  const tot=parts.reduce((a,p)=>a+p.n,0),C=Math.PI*80;let off=0;
+  const arc=(len,c,o)=>`<path d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke-width="22" stroke-dasharray="${Math.max(0,len).toFixed(2)} ${(C*2).toFixed(2)}" stroke-dashoffset="${(-o).toFixed(2)}" style="stroke:${c}"/>`;
+  let o=`<svg viewBox="0 0 200 112" role="img" aria-label="${esc(sub)}: ${centro}"><path d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke-width="22" style="stroke:var(--line)"/>`;
+  if(tot)parts.forEach(p=>{if(!p.n)return;const len=C*p.n/tot;o+=arc(Math.max(1,len-3),p.c,off);off+=len});
+  return o+`<text x="100" y="88" text-anchor="middle" style="fill:var(--fg);font:700 28px var(--f-display)">${centro}</text><text x="100" y="106" text-anchor="middle" style="fill:var(--muted);font:12px var(--f-body)">${esc(sub)}</text></svg>`
+}
+const CHV='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
 function vDash(){
   if(!db.contacts.length&&!db.deals.length&&!db.tasks.length)return`<div class="head"><div><h1>Painel</h1><p>O CRM ainda está vazio.</p></div></div><div class="card empty"><p>Cria o primeiro contacto ou carrega dados de exemplo para ver como funciona.</p><div class="acts" style="justify-content:center"><button class="btn pri" data-a="newc">Novo contacto</button><button class="btn" data-a="${me.papel==='admin'?'setor':'samples'}">${me.papel==='admin'?'Escolher o meu setor':'Carregar exemplos'}</button></div></div>`;
   const open=db.deals.filter(isOpen);
@@ -902,26 +1031,48 @@ function vDash(){
   const ors=Object.entries(orc).sort((a,b)=>b[1]-a[1]),omx=Math.max(1,...ors.map(x=>x[1]));
   const parados=db.contacts.filter(c=>c.estado==='Lead'&&!c.proximo_contacto&&(c.ultimo_contacto||c.criado_em)&&Date.now()-new Date(c.ultimo_contacto||c.criado_em).getTime()>7*DAY).sort((a,b)=>String(a.ultimo_contacto||a.criado_em).localeCompare(String(b.ultimo_contacto||b.criado_em)));
   const nt=db.tasks.filter(t=>!t.feito).sort((a,b)=>a.data.localeCompare(b.data)).slice(0,5);
+  const T0=today(),days=[];for(let i=13;i>=0;i--)days.push(addDays(-i));
+  const cd={},wd={};
+  db.contacts.forEach(c=>{const k=c.criado_em?String(c.criado_em).slice(0,10):T0;cd[k]=(cd[k]||0)+1});
+  won.forEach(d=>{const k=gdate(d);wd[k]=(wd[k]||0)+1});
+  const sNew=days.map(k=>cd[k]||0),sWon=days.map(k=>wd[k]||0);
+  const dl=k=>(+k.slice(8))+' '+MESES[+k.slice(5,7)-1];
+  const sGanho=[];for(let i=5;i>=0;i--){const dt=new Date(_n.getFullYear(),_n.getMonth()-i,1),kk=ymKey(dt.getFullYear(),dt.getMonth());sGanho.push(won.filter(d=>gdate(d).slice(0,7)===kk).reduce((a,d)=>a+d.valor,0))}
+  const sFun=STAGES.slice(0,4).map(s=>open.filter(d=>d.etapa===s.id).reduce((a,d)=>a+d.valor*s.p,0));
+  const nCli=db.contacts.filter(c=>c.estado==='Cliente').length,nLead=db.contacts.filter(c=>c.estado==='Lead').length,nIn=db.contacts.filter(c=>c.estado==='Inativo').length,nTot=db.contacts.length;
+  const pctCli=nTot?Math.round(100*nCli/nTot):0;
+  const recent=db.contacts.slice().sort((a,b)=>String(b.criado_em||'9').localeCompare(String(a.criado_em||'9'))).slice(0,5);
   return`<div class="head"><div><h1>${saudacao()}</h1><p>${isMgr()?'Resumo das vendas':'Os teus números'} em ${new Date().toLocaleDateString('pt-PT',{day:'numeric',month:'long',year:'numeric'})}</p></div></div>
   ${hojeCard(dev,od)}
-  <div class="kpis">
-    <div class="card kpi"><div class="l">Ganho este mês</div><div class="v" data-n="${gm}" data-f="kzc">${kzc(gm)}</div><div class="d">${varHTML(gm,gp,'face ao mês anterior')}</div></div>
-    <div class="card kpi"><div class="l">Receita prevista</div><div class="v" data-n="${fc}" data-f="kzc">${kzc(fc)}</div><div class="s">ponderada pela etapa</div></div>
+  <div class="kpis big">
+    <div class="card kpi"><div class="l">Ganho este mês</div><div class="v" data-n="${gm}" data-f="kzc">${kzc(gm)}</div><div class="d">${varHTML(gm,gp,'face ao mês anterior')}</div>${spark(sGanho,'var(--violet)')}<div class="s">últimos 6 meses</div></div>
+    <div class="card kpi"><div class="l">Receita prevista</div><div class="v" data-n="${fc}" data-f="kzc">${kzc(fc)}</div><div class="d"><span class="vr m">ponderada pela etapa</span></div>${spark(sFun,'var(--accent)')}<div class="s">Novo, Qualificado, Proposta, Negociação</div></div>
+    <div class="card kpi"><div class="l">Contactos novos hoje</div><div class="v">${hoje}</div><div class="d"><span class="vr m">${nTot} contactos no total</span></div>${spark(sNew,'var(--violet)')}<div class="s">últimos 14 dias</div></div>
+  </div>
+  <div class="kpis mini">
     <div class="card kpi"><div class="l">Negócios abertos</div><div class="v" data-n="${open.length}" data-f="int">${open.length}</div><div class="s">${kzc(open.reduce((a,d)=>a+d.valor,0))} em carteira</div></div>
     <div class="card kpi"><div class="l">Taxa de conversão</div><div class="v" data-n="${conv}" data-f="pct">${conv}%</div><div class="s">${won.length} ganhos, ${lost.length} perdidos</div></div>
-    <div class="card kpi"><div class="l">Contactos novos hoje</div><div class="v">${hoje}</div><div class="s">${db.contacts.length} contactos no total</div></div>
     <div class="card kpi"><div class="l">Tarefas em atraso</div><div class="v" style="color:${od?'var(--bad)':'inherit'}">${od}</div><div class="s">${db.tasks.filter(t=>!t.feito).length} pendentes no total</div></div>
   </div>
-  ${vRev()}
-  <div class="grid2">
-    <div class="card"><h2>Funil de vendas</h2><div class="fun">${fun.map(f=>`<div class="r"><div><div class="t">${f.s.nome}</div><div class="cnt">${f.n} negócio${f.n===1?'':'s'}</div></div><div class="bar"><b style="width:${Math.round(100*f.v/mx)}%"></b></div><div class="num">${kzc(f.v)}</div></div>`).join('')}</div></div>
-    <div class="card"><h2>Próximas tarefas</h2><div class="list">${nt.length?nt.map(t=>`<div class="it"><div class="grow"><div class="t">${esc(t.titulo)}</div><div class="m">${esc(cname(t.contacto))}</div></div><span class="chip ${overdue(t)?'bad':t.data===today()?'warn':'mut'}">${t.data===today()?'Hoje':fdate(t.data)}</span></div>`).join(''):'<div class="empty">Sem tarefas pendentes.</div>'}</div></div>
+  <div class="dg">
+  <div class="dl">
+    <div class="card ac"><div class="ph2"><div><h2>Resumo de atividade</h2><div class="m">Últimos 14 dias</div></div><div class="lgs"><span class="lg"><i style="background:var(--violet)"></i>Novos contactos</span><span class="lg"><i style="background:var(--accent)"></i>Negócios ganhos</span><span class="pill">${dl(days[0])} – ${dl(days[13])}</span></div></div>${areaChart(days.map(dl),[{n:'Novos contactos',c:'var(--violet)',v:sNew},{n:'Negócios ganhos',c:'var(--accent)',v:sWon}])}</div>
+    ${vRev()}
+    <div class="grid2 eq">
+      <div class="card gg"><h2>Contactos por estado</h2>${gauge([{n:nCli,c:'var(--violet)'},{n:nLead,c:'var(--violet-2)'},{n:nIn,c:'var(--muted)'}],pctCli+'%','são clientes')}<div class="lgs c"><span class="lg"><i style="background:var(--violet)"></i>Cliente ${nCli}</span><span class="lg"><i style="background:var(--violet-2)"></i>Lead ${nLead}</span><span class="lg"><i style="background:var(--muted)"></i>Inativo ${nIn}</span></div></div>
+      <div class="card"><h2>Funil de vendas</h2><div class="fun">${fun.map(f=>`<div class="r"><div><div class="t">${f.s.nome}</div><div class="cnt">${f.n} negócio${f.n===1?'':'s'}</div></div><div class="bar"><b style="width:${Math.round(100*f.v/mx)}%"></b></div><div class="num">${kzc(f.v)}</div></div>`).join('')}</div></div>
+    </div>
+    <div class="grid2 eq">
+      <div class="card"><h2>Para contactar hoje</h2><div class="list">${dev.length?dev.slice(0,6).map(c=>`<div class="it"><div class="grow"><div class="t">${esc(c.nome)}</div><div class="m">${esc(c.empresa||'')}${c.empresa&&c.tel?' · ':''}${esc(c.tel||'')}</div></div>${proxChip(c)}${callHref(c)?`<a class="wa" data-a="call" data-id="${c.id}" href="${callHref(c)}">Ligar</a>`:''}${waNum(c.tel)?`<button type="button" class="wa" data-a="wa" data-id="${c.id}">${WA_ICO}WhatsApp</button>`:''}<button type="button" class="btn" data-a="logc" data-id="${c.id}">Registar</button></div>`).join('')+(dev.length>6?`<div class="m" style="padding:8px 0">e mais ${dev.length-6} contacto(s)</div>`:''):'<div class="empty">Ninguém para contactar hoje. Define a data de próximo contacto em cada cliente.</div>'}</div></div>
+      <div class="card"><h2>Contactos por origem</h2><div class="fun">${ors.map(([k,n])=>`<div class="r"><div><div class="t">${esc(k)}</div></div><div class="bar"><b style="width:${Math.round(100*n/omx)}%"></b></div><div class="num">${n}</div></div>`).join('')||'<div class="empty">Sem contactos ainda.</div>'}</div></div>
+    </div>
   </div>
-  <div class="grid2" style="margin-top:12px">
-    <div class="card"><h2>Para contactar hoje</h2><div class="list">${dev.length?dev.slice(0,6).map(c=>`<div class="it"><div class="grow"><div class="t">${esc(c.nome)}</div><div class="m">${esc(c.empresa||'')}${c.empresa&&c.tel?' · ':''}${esc(c.tel||'')}</div></div>${proxChip(c)}${callHref(c)?`<a class="wa" data-a="call" data-id="${c.id}" href="${callHref(c)}">Ligar</a>`:''}${waNum(c.tel)?`<button type="button" class="wa" data-a="wa" data-id="${c.id}">${WA_ICO}WhatsApp</button>`:''}<button type="button" class="btn" data-a="logc" data-id="${c.id}">Registar</button></div>`).join('')+(dev.length>6?`<div class="m" style="padding:8px 0">e mais ${dev.length-6} contacto(s)</div>`:''):'<div class="empty">Ninguém para contactar hoje. Define a data de próximo contacto em cada cliente.</div>'}</div></div>
-    <div class="card"><h2>Contactos por origem</h2><div class="fun">${ors.map(([k,n])=>`<div class="r"><div><div class="t">${esc(k)}</div></div><div class="bar"><b style="width:${Math.round(100*n/omx)}%"></b></div><div class="num">${n}</div></div>`).join('')||'<div class="empty">Sem contactos ainda.</div>'}</div></div>
+  <div class="dr">
+    <div class="card"><div class="ph2"><h2>Leads recentes</h2><button type="button" class="link" data-a="go" data-id="contactos">Ver todos</button></div><div class="list">${recent.length?recent.map(c=>`<div class="it lead" data-a="editc" data-id="${c.id}" role="button" tabindex="0"><span class="av">${esc(ini(c.nome))}</span><div class="grow"><div class="t">${esc(c.nome)}</div><div class="m">${esc([c.email,c.empresa].filter(Boolean).join(' · '))||'&nbsp;'}</div></div>${CHV}</div>`).join(''):'<div class="empty">Sem contactos ainda.</div>'}</div></div>
+    <div class="card"><div class="ph2"><h2>As minhas tarefas</h2><button type="button" class="link" data-a="go" data-id="tarefas">Ver todas</button></div><div class="list">${nt.length?nt.map(t=>`<label class="it mt"><input type="checkbox" data-a="tick" data-id="${t.id}" aria-label="Concluir ${esc(t.titulo)}"><div class="grow"><div class="t">${esc(t.titulo)}</div><div class="m">${esc(cname(t.contacto))||'&nbsp;'}</div></div><span class="chip ${overdue(t)?'bad':t.data===today()?'warn':'mut'}">${overdue(t)?'Atrasada':t.data===today()?'Hoje':fdate(t.data)}</span></label>`).join(''):'<div class="empty">Sem tarefas pendentes.</div>'}</div></div>
+    ${parados.length?`<div class="card"><h2>Leads parados há mais de 7 dias</h2><div class="list">${parados.slice(0,5).map(c=>`<div class="it"><div class="grow"><div class="t">${esc(c.nome)}</div><div class="m">${esc(c.empresa||'')}${c.origem?' · '+esc(c.origem):''}</div></div>${callHref(c)?`<a class="wa" data-a="call" data-id="${c.id}" href="${callHref(c)}">Ligar</a>`:''}${waNum(c.tel)?`<button type="button" class="wa" data-a="wa" data-id="${c.id}">${WA_ICO}WhatsApp</button>`:''}<button type="button" class="btn" data-a="logc" data-id="${c.id}">Registar</button></div>`).join('')}${parados.length>5?`<div class="m" style="padding:8px 0">e mais ${parados.length-5} lead(s)</div>`:''}</div></div>`:''}
   </div>
-  ${parados.length?`<div class="card" style="margin-top:12px"><h2>Leads parados há mais de 7 dias</h2><div class="list">${parados.slice(0,5).map(c=>`<div class="it"><div class="grow"><div class="t">${esc(c.nome)}</div><div class="m">${esc(c.empresa||'')}${c.origem?' · '+esc(c.origem):''}</div></div>${callHref(c)?`<a class="wa" data-a="call" data-id="${c.id}" href="${callHref(c)}">Ligar</a>`:''}${waNum(c.tel)?`<button type="button" class="wa" data-a="wa" data-id="${c.id}">${WA_ICO}WhatsApp</button>`:''}<button type="button" class="btn" data-a="logc" data-id="${c.id}">Registar</button></div>`).join('')}${parados.length>5?`<div class="m" style="padding:8px 0">e mais ${parados.length-5} lead(s)</div>`:''}</div></div>`:''}`;
+  </div>`;
 }
 function vContacts(){
   return`<div class="head"><div><h1>Contactos</h1><p>${db.contacts.length} pessoas em ${new Set(db.contacts.map(c=>c.empresa)).size} empresas</p></div><div class="acts" style="margin:0"><button class="btn" data-a="impc">Importar</button><button class="btn" data-a="expc">Exportar</button><button class="btn pri" data-a="newc">Novo contacto</button></div></div>
@@ -1171,6 +1322,7 @@ document.addEventListener('click',e=>{
   if(a==='tema'){nextTema();return}
   if(a==='go'){location.hash=id;return}
   if(a==='per'){ui.per=+id;render();return}
+  if(a==='topnew'){const f=FABS[ui.view]||FABS.contactos;({newq:editQuote,newc:editContact,newd:editDeal,newt:editTask,newi:editInic})[f[0]]();return}
   if(a==='fi'){ui.fi=id;render();return}
   if(a==='modelo'){seedPlan();return}
   if(a==='meta'){editEmpresa();return}
@@ -1237,7 +1389,7 @@ document.addEventListener('change',e=>{
   if(el.id==='st'){ui.st=el.value;listContacts()}
 });
 document.addEventListener('input',e=>{if(e.target.id==='q'){ui.q=e.target.value;listContacts()}});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('#doc').hidden){$('#doc').hidden=true;$('#doc').innerHTML=''}else closeM()}});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='gq'){ui.q=e.target.value.trim();if(ui.view==='contactos')render();else location.hash='contactos';return}if(e.key==='Escape'){if(!$('#doc').hidden){$('#doc').hidden=true;$('#doc').innerHTML=''}else closeM()}});
 let dragId=null;
 document.addEventListener('dragstart',e=>{const d=e.target.closest('.deal');if(d){dragId=d.dataset.id;e.dataTransfer.effectAllowed='move';try{e.dataTransfer.setData('text/plain',dragId)}catch(_){}}});
 document.addEventListener('dragover',e=>{const c=e.target.closest('.col');if(c&&dragId){e.preventDefault();if(e.dataTransfer)e.dataTransfer.dropEffect='move';document.querySelectorAll('.col.over').forEach(x=>x!==c&&x.classList.remove('over'));c.classList.add('over')}});
@@ -1319,7 +1471,7 @@ function useSnapshot(){
   db=Object.assign(DB0(),sn.db);me.papel=sn.me.papel;me.plataforma=!!sn.me.plataforma;offline=true;return true;
 }
 function showApp(){
-  $('#who').textContent=(myPerfil().nome?myPerfil().nome+' · ':'')+me.email+' ('+(PAPEL[me.papel]||me.papel).toLowerCase()+')';
+  {const pn=myPerfil().nome||'';$('#who').innerHTML=(pn?'<b>'+esc(pn)+'</b>':'')+'<small>'+esc(me.email)+' ('+esc((PAPEL[me.papel]||me.papel).toLowerCase())+')</small>';$('#whoav').textContent=ini(pn||me.email.split('@')[0]||'K')}
   $('#auth').hidden=true;$('#app').hidden=false;netBanner();
   if(location.hash==='#entrar'||location.hash==='#criar')history.replaceState(null,'',location.pathname);
   route();
