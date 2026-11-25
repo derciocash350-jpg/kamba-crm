@@ -70,7 +70,9 @@ main{min-width:0}
 .grid2{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:12px}
 .card h2{font-size:16px;margin-bottom:12px}
 .fun{display:grid;gap:10px}
-.fun .r{display:grid;grid-template-columns:110px 1fr 110px;gap:10px;align-items:center}
+.fun .r{display:grid;grid-template-columns:minmax(0,110px) minmax(24px,1fr) auto;gap:10px;align-items:center}
+.fun .r>*{min-width:0}
+.fun .num{white-space:nowrap}
 .fun .bar{height:22px;background:var(--bg);border-radius:6px;overflow:hidden}
 .fun .bar b{display:block;height:100%;background:linear-gradient(90deg,var(--violet-2),var(--violet));border-radius:6px;min-width:4px}
 .fun .num{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
@@ -449,6 +451,9 @@ a.wa{text-decoration:none}
 .bi.more{justify-content:center;color:var(--accent);font-weight:600;border-top:1px solid var(--line);border-radius:0 0 10px 10px;margin-top:6px}
 .mob .mtop .ibtn{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--muted);display:grid;place-items:center}
 .mob .mtop .ibtn b{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;border-radius:9px;background:var(--bad);color:#fff;font-size:10px;display:grid;place-items:center;padding:0 4px}
+.chip.etq{background:var(--violet-soft);color:var(--violet)}
+.seg select{border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--fg);padding:6px 10px;font:inherit;font-size:13px}
+.ac .ph2 .seg{flex-wrap:nowrap}
 </style>
 
 </head>
@@ -559,13 +564,13 @@ const toRow={
   inter:o=>({id:o.id,contacto_id:o.contacto_id,tipo:o.tipo,resultado:o.resultado||'',nota:o.nota||'',criado_em:o.criado_em}),
   contacts:o=>({id:o.id,origem:o.origem||'',proximo_contacto:o.proximo_contacto||null,nome:o.nome,empresa:o.empresa,cargo:o.cargo,email:o.email,tel:o.tel,cidade:o.cidade,estado:o.estado,notas:o.notas,...(o.ultimo_contacto?{ultimo_contacto:o.ultimo_contacto}:{}),...rp(o)}),
   deals:o=>({id:o.id,titulo:o.titulo,contacto_id:o.contacto||null,valor:o.valor,etapa:o.etapa,fecho:o.fecho||null,notas:o.notas||'',...rp(o)}),
-  tasks:o=>({id:o.id,titulo:o.titulo,contacto_id:o.contacto||null,data:o.data,feito:!!o.feito,...rp(o)}),
+  tasks:o=>({id:o.id,titulo:o.titulo,contacto_id:o.contacto||null,data:o.data,feito:!!o.feito,etiqueta:o.etiqueta||'',...rp(o)}),
   team:o=>({email:o.email,papel:o.papel}),
   orcamentos:o=>({id:o.id,titulo:o.titulo,negocio_id:o.negocio_id||null,cliente:o.cliente||{},itens:o.itens||[],iva_pct:o.iva_pct,validade:o.validade||null,condicoes:o.condicoes||'',estado:o.estado||'rascunho',...rp(o)}),
   empresa:o=>({nome:o.nome||'',nif:o.nif||'',endereco:o.endereco||'',telefone:o.telefone||'',email:o.email||'',iva_pct:o.iva_pct,validade_dias:o.validade_dias,condicoes:o.condicoes||'',setor:o.setor||'',responsavel:o.responsavel||'',meta_mensal:Math.max(0,Number(o.meta_mensal)||0)})};
 const fromRow={
-  deals:r=>({id:r.id,titulo:r.titulo,contacto:r.contacto_id||'',valor:Number(r.valor),etapa:r.etapa,fecho:r.fecho||'',notas:r.notas||'',responsavel:r.responsavel||'',ganho:r.ganho_em||''}),
-  tasks:r=>({id:r.id,titulo:r.titulo,contacto:r.contacto_id||'',data:r.data,feito:r.feito,responsavel:r.responsavel||''}),
+  deals:r=>({id:r.id,titulo:r.titulo,contacto:r.contacto_id||'',valor:Number(r.valor),etapa:r.etapa,fecho:r.fecho||'',notas:r.notas||'',responsavel:r.responsavel||'',ganho:r.ganho_em||'',perdido:r.perdido_em||''}),
+  tasks:r=>({id:r.id,titulo:r.titulo,contacto:r.contacto_id||'',data:r.data,feito:r.feito,etiqueta:r.etiqueta||'',responsavel:r.responsavel||''}),
   orcamentos:r=>({...r,iva_pct:Number(r.iva_pct),subtotal:Number(r.subtotal),iva_valor:Number(r.iva_valor),total:Number(r.total)})};
 let queue=[];let offline=false;let saving=false;let snapT;
 const lsGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
@@ -670,6 +675,8 @@ const ccomp=id=>(db.contacts.find(c=>c.id===id)||{}).empresa||'';
 const stage=id=>STAGES.find(s=>s.id===id);
 const isOpen=d=>d.etapa!=='ganho'&&d.etapa!=='perdido';
 const overdue=t=>!t.feito&&t.data<today();
+const ETQ={vendas:'Vendas',marketing:'Marketing',administrativo:'Administrativo',geral:'Geral'};
+const etqChip=t=>t.etiqueta&&ETQ[t.etiqueta]?`<span class="chip etq">${ETQ[t.etiqueta]}</span>`:'';
 
 function renderNav(){
   const pend=db.tasks.filter(t=>!t.feito).length;
@@ -973,6 +980,7 @@ function pickSetor(){
 }
 const MESES=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 const ymKey=(y,m)=>y+'-'+String(m+1).padStart(2,'0');
+function setEd(d){d.ganho=d.etapa==='ganho'?(d.ganho||today()):'';d.perdido=d.etapa==='perdido'?(d.perdido||today()):''}
 function gdate(d){return String(d.ganho||today()).slice(0,10)}
 function varHTML(cur,prev,txt){
   if(!prev)return cur?'<span class="vr up">primeiros ganhos</span>':'<span class="vr m">&nbsp;</span>';
@@ -1093,11 +1101,11 @@ function areaChart(labels,series){
   const W=640,H=232,L=30,R=10,T=14,B=28,n=labels.length,cw=W-L-R,ch=H-T-B;
   const m0=Math.max(1,...series.flatMap(s=>s.v)),step=m0<=4?1:m0<=10?2:Math.ceil(m0/4),mx=Math.ceil(m0/step)*step;
   const x=i=>L+cw*i/(n-1),y=v=>T+ch-ch*v/mx,id='ac'+(++_sid);
-  let o=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Novos contactos e negócios ganhos nos últimos ${n} dias"><defs>${series.map((s,k)=>`<linearGradient id="${id}${k}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:${s.c};stop-opacity:.26"/><stop offset="1" style="stop-color:${s.c};stop-opacity:0"/></linearGradient>`).join('')}</defs>`;
+  let o=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Novos contactos, negócios ganhos e perdidos nos últimos ${n} dias"><defs>${series.map((s,k)=>`<linearGradient id="${id}${k}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:${s.c};stop-opacity:.26"/><stop offset="1" style="stop-color:${s.c};stop-opacity:0"/></linearGradient>`).join('')}</defs>`;
   for(let g=0;g<=mx;g+=step)o+=`<line x1="${L}" x2="${W-R}" y1="${y(g).toFixed(1)}" y2="${y(g).toFixed(1)}" style="stroke:var(--line)"/><text x="${L-8}" y="${(y(g)+4).toFixed(1)}" text-anchor="end" style="fill:var(--muted);font:11px var(--f-body)">${g}</text>`;
   series.forEach((s,k)=>{const pts=s.v.map((v,i)=>[x(i),y(v)]),d=smooth(pts,T+ch,T);
     o+=`<path d="${d} L${x(n-1).toFixed(1)} ${T+ch} L${L} ${T+ch}Z" fill="url(#${id}${k})"/><path d="${d}" fill="none" stroke-width="2.5" stroke-linecap="round" style="stroke:${s.c}"/><circle cx="${x(n-1).toFixed(1)}" cy="${y(s.v[n-1]).toFixed(1)}" r="4" stroke-width="2" style="stroke:${s.c};fill:var(--surface)"/>`});
-  labels.forEach((l,i)=>{if(i%2===1)o+=`<text x="${x(i).toFixed(1)}" y="${H-8}" text-anchor="${i===n-1?'end':'middle'}" style="fill:var(--muted);font:11px var(--f-body)">${l}</text>`});
+  const lst=n<=10?1:n<=16?2:n<=35?5:15;labels.forEach((l,i)=>{if((n-1-i)%lst===0)o+=`<text x="${x(i).toFixed(1)}" y="${H-8}" text-anchor="${i===n-1?'end':'middle'}" style="fill:var(--muted);font:11px var(--f-body)">${l}</text>`});
   const bw=cw/(n-1);
   labels.forEach((l,i)=>{o+=`<rect class="hv" x="${(x(i)-bw/2).toFixed(1)}" y="${T}" width="${bw.toFixed(1)}" height="${ch}" fill="transparent"><title>${l}: ${series.map(s=>s.v[i]+' '+s.n.toLowerCase()).join(' · ')}</title></rect>`});
   return o+'</svg>'
@@ -1127,11 +1135,12 @@ function vDash(){
   const ors=Object.entries(orc).sort((a,b)=>b[1]-a[1]),omx=Math.max(1,...ors.map(x=>x[1]));
   const parados=db.contacts.filter(c=>c.estado==='Lead'&&!c.proximo_contacto&&(c.ultimo_contacto||c.criado_em)&&Date.now()-new Date(c.ultimo_contacto||c.criado_em).getTime()>7*DAY).sort((a,b)=>String(a.ultimo_contacto||a.criado_em).localeCompare(String(b.ultimo_contacto||b.criado_em)));
   const nt=db.tasks.filter(t=>!t.feito).sort((a,b)=>a.data.localeCompare(b.data)).slice(0,5);
-  const T0=today(),days=[];for(let i=13;i>=0;i--)days.push(addDays(-i));
-  const cd={},wd={};
+  const T0=today(),NR=[7,14,30,90].includes(ui.dr)?ui.dr:14,days=[],d14=[];for(let i=NR-1;i>=0;i--)days.push(addDays(-i));for(let i=13;i>=0;i--)d14.push(addDays(-i));
+  const cd={},wd={},pdd={};
   db.contacts.forEach(c=>{const k=c.criado_em?String(c.criado_em).slice(0,10):T0;cd[k]=(cd[k]||0)+1});
   won.forEach(d=>{const k=gdate(d);wd[k]=(wd[k]||0)+1});
-  const sNew=days.map(k=>cd[k]||0),sWon=days.map(k=>wd[k]||0);
+  lost.forEach(d=>{if(d.perdido){const k=String(d.perdido).slice(0,10);pdd[k]=(pdd[k]||0)+1}});
+  const sNew=days.map(k=>cd[k]||0),sWon=days.map(k=>wd[k]||0),sLost=days.map(k=>pdd[k]||0),sSp=d14.map(k=>cd[k]||0);
   const dl=k=>(+k.slice(8))+' '+MESES[+k.slice(5,7)-1];
   const sGanho=[];for(let i=5;i>=0;i--){const dt=new Date(_n.getFullYear(),_n.getMonth()-i,1),kk=ymKey(dt.getFullYear(),dt.getMonth());sGanho.push(won.filter(d=>gdate(d).slice(0,7)===kk).reduce((a,d)=>a+d.valor,0))}
   const sFun=STAGES.slice(0,4).map(s=>open.filter(d=>d.etapa===s.id).reduce((a,d)=>a+d.valor*s.p,0));
@@ -1143,7 +1152,7 @@ function vDash(){
   <div class="kpis big">
     <div class="card kpi"><div class="l">Ganho este mês</div><div class="v" data-n="${gm}" data-f="kzc">${kzc(gm)}</div><div class="d">${varHTML(gm,gp,'face ao mês anterior')}</div>${spark(sGanho,'var(--violet)')}<div class="s">últimos 6 meses</div></div>
     <div class="card kpi"><div class="l">Receita prevista</div><div class="v" data-n="${fc}" data-f="kzc">${kzc(fc)}</div><div class="d"><span class="vr m">ponderada pela etapa</span></div>${spark(sFun,'var(--accent)')}<div class="s">Novo, Qualificado, Proposta, Negociação</div></div>
-    <div class="card kpi"><div class="l">Contactos novos hoje</div><div class="v">${hoje}</div><div class="d"><span class="vr m">${nTot} contactos no total</span></div>${spark(sNew,'var(--violet)')}<div class="s">últimos 14 dias</div></div>
+    <div class="card kpi"><div class="l">Contactos novos hoje</div><div class="v">${hoje}</div><div class="d"><span class="vr m">${nTot} contactos no total</span></div>${spark(sSp,'var(--violet)')}<div class="s">últimos 14 dias</div></div>
   </div>
   <div class="kpis mini">
     <div class="card kpi"><div class="l">Negócios abertos</div><div class="v" data-n="${open.length}" data-f="int">${open.length}</div><div class="s">${kzc(open.reduce((a,d)=>a+d.valor,0))} em carteira</div></div>
@@ -1152,7 +1161,7 @@ function vDash(){
   </div>
   <div class="dg">
   <div class="dl">
-    <div class="card ac"><div class="ph2"><div><h2>Resumo de atividade</h2><div class="m">Últimos 14 dias</div></div><div class="lgs"><span class="lg"><i style="background:var(--violet)"></i>Novos contactos</span><span class="lg"><i style="background:var(--accent)"></i>Negócios ganhos</span><span class="pill">${dl(days[0])} – ${dl(days[13])}</span></div></div>${areaChart(days.map(dl),[{n:'Novos contactos',c:'var(--violet)',v:sNew},{n:'Negócios ganhos',c:'var(--accent)',v:sWon}])}</div>
+    <div class="card ac"><div class="ph2"><div><h2>Resumo de atividade</h2><div class="m">Últimos ${NR} dias · ${dl(days[0])} a ${dl(days[NR-1])}</div></div><div class="seg" role="group" aria-label="Intervalo de datas" style="margin:0">${[7,14,30,90].map(n=>`<button type="button" data-a="dr" data-id="${n}" aria-pressed="${NR===n}">${n} dias</button>`).join('')}</div></div><div class="lgs" style="margin-bottom:6px"><span class="lg"><i style="background:var(--violet)"></i>Novos contactos</span><span class="lg"><i style="background:var(--accent)"></i>Negócios ganhos</span><span class="lg"><i style="background:var(--bad)"></i>Negócios perdidos</span></div>${areaChart(days.map(dl),[{n:'Novos contactos',c:'var(--violet)',v:sNew},{n:'Negócios ganhos',c:'var(--accent)',v:sWon},{n:'Negócios perdidos',c:'var(--bad)',v:sLost}])}</div>
     ${vRev()}
     <div class="grid2 eq">
       <div class="card gg"><h2>Contactos por estado</h2>${gauge([{n:nCli,c:'var(--violet)'},{n:nLead,c:'var(--violet-2)'},{n:nIn,c:'var(--muted)'}],pctCli+'%','são clientes')}<div class="lgs c"><span class="lg"><i style="background:var(--violet)"></i>Cliente ${nCli}</span><span class="lg"><i style="background:var(--violet-2)"></i>Lead ${nLead}</span><span class="lg"><i style="background:var(--muted)"></i>Inativo ${nIn}</span></div></div>
@@ -1165,7 +1174,7 @@ function vDash(){
   </div>
   <div class="dr">
     <div class="card"><div class="ph2"><h2>Leads recentes</h2><button type="button" class="link" data-a="go" data-id="contactos">Ver todos</button></div><div class="list">${recent.length?recent.map(c=>`<div class="it lead" data-a="editc" data-id="${c.id}" role="button" tabindex="0"><span class="av">${esc(ini(c.nome))}</span><div class="grow"><div class="t">${esc(c.nome)}</div><div class="m">${esc([c.email,c.empresa].filter(Boolean).join(' · '))||'&nbsp;'}</div></div>${CHV}</div>`).join(''):'<div class="empty">Sem contactos ainda.</div>'}</div></div>
-    <div class="card"><div class="ph2"><h2>As minhas tarefas</h2><button type="button" class="link" data-a="go" data-id="tarefas">Ver todas</button></div><div class="list">${nt.length?nt.map(t=>`<label class="it mt"><input type="checkbox" data-a="tick" data-id="${t.id}" aria-label="Concluir ${esc(t.titulo)}"><div class="grow"><div class="t">${esc(t.titulo)}</div><div class="m">${esc(cname(t.contacto))||'&nbsp;'}</div></div><span class="chip ${overdue(t)?'bad':t.data===today()?'warn':'mut'}">${overdue(t)?'Atrasada':t.data===today()?'Hoje':fdate(t.data)}</span></label>`).join(''):'<div class="empty">Sem tarefas pendentes.</div>'}</div></div>
+    <div class="card"><div class="ph2"><h2>As minhas tarefas</h2><button type="button" class="link" data-a="go" data-id="tarefas">Ver todas</button></div><div class="list">${nt.length?nt.map(t=>`<label class="it mt"><input type="checkbox" data-a="tick" data-id="${t.id}" aria-label="Concluir ${esc(t.titulo)}"><div class="grow"><div class="t">${esc(t.titulo)}</div><div class="m">${esc(cname(t.contacto))||'&nbsp;'}</div></div>${etqChip(t)}<span class="chip ${overdue(t)?'bad':t.data===today()?'warn':'mut'}">${overdue(t)?'Atrasada':t.data===today()?'Hoje':fdate(t.data)}</span></label>`).join(''):'<div class="empty">Sem tarefas pendentes.</div>'}</div></div>
     ${parados.length?`<div class="card"><h2>Leads parados há mais de 7 dias</h2><div class="list">${parados.slice(0,5).map(c=>`<div class="it"><div class="grow"><div class="t">${esc(c.nome)}</div><div class="m">${esc(c.empresa||'')}${c.origem?' · '+esc(c.origem):''}</div></div>${callHref(c)?`<a class="wa" data-a="call" data-id="${c.id}" href="${callHref(c)}">Ligar</a>`:''}${waNum(c.tel)?`<button type="button" class="wa" data-a="wa" data-id="${c.id}">${WA_ICO}WhatsApp</button>`:''}<button type="button" class="btn" data-a="logc" data-id="${c.id}">Registar</button></div>`).join('')}${parados.length>5?`<div class="m" style="padding:8px 0">e mais ${parados.length-5} lead(s)</div>`:''}</div></div>`:''}
   </div>
   </div>`;
@@ -1220,18 +1229,18 @@ function vPipe(){
 }
 function vTasks(){
   const f=ui.tf;
-  let r=db.tasks.filter(t=>f==='pend'?!t.feito:f==='hoje'?!t.feito&&t.data===today():f==='atraso'?overdue(t):t.feito).sort((a,b)=>a.data.localeCompare(b.data));
+  let r=db.tasks.filter(t=>f==='pend'?!t.feito:f==='hoje'?!t.feito&&t.data===today():f==='atraso'?overdue(t):t.feito).filter(t=>!ui.te||t.etiqueta===ui.te).sort((a,b)=>a.data.localeCompare(b.data));
   const cnt={pend:db.tasks.filter(t=>!t.feito).length,hoje:db.tasks.filter(t=>!t.feito&&t.data===today()).length,atraso:db.tasks.filter(overdue).length,feito:db.tasks.filter(t=>t.feito).length};
   const L=[['pend','Pendentes'],['hoje','Hoje'],['atraso','Em atraso'],['feito','Concluídas']];
   return`<div class="head"><div><h1>Tarefas</h1><p>Follow-ups e lembretes da equipa</p></div><button class="btn pri" data-a="newt">Nova tarefa</button></div>
-  <div class="seg">${L.map(([k,n])=>`<button data-a="tf" data-k="${k}" aria-pressed="${f===k}">${n} (${cnt[k]})</button>`).join('')}</div>
-  <div class="card">${r.length?r.map(t=>`<div class="tk ${t.feito?'done':''}"><input type="checkbox" data-a="tick" data-id="${t.id}" ${t.feito?'checked':''} aria-label="Concluir tarefa"><div class="grow" data-a="editt" data-id="${t.id}" style="cursor:pointer"><div class="t">${esc(t.titulo)}</div><div class="m">${esc(cname(t.contacto))||'Sem contacto'}${ccomp(t.contacto)?' · '+esc(ccomp(t.contacto)):''}</div></div><span class="chip ${t.feito?'mut':overdue(t)?'bad':t.data===today()?'warn':'mut'}">${t.data===today()&&!t.feito?'Hoje':fdate(t.data)}</span></div>`).join(''):'<div class="empty">Nada por aqui.</div>'}</div>`;
+  <div class="seg">${L.map(([k,n])=>`<button data-a="tf" data-k="${k}" aria-pressed="${f===k}">${n} (${cnt[k]})</button>`).join('')}<select data-a="te" aria-label="Filtrar por etiqueta" style="margin-left:auto"><option value="">Todas as etiquetas</option>${opt(Object.keys(ETQ),ui.te||'',k=>[k,ETQ[k]])}</select></div>
+  <div class="card">${r.length?r.map(t=>`<div class="tk ${t.feito?'done':''}"><input type="checkbox" data-a="tick" data-id="${t.id}" ${t.feito?'checked':''} aria-label="Concluir tarefa"><div class="grow" data-a="editt" data-id="${t.id}" style="cursor:pointer"><div class="t">${esc(t.titulo)}</div><div class="m">${esc(cname(t.contacto))||'Sem contacto'}${ccomp(t.contacto)?' · '+esc(ccomp(t.contacto)):''}</div></div>${etqChip(t)}<span class="chip ${t.feito?'mut':overdue(t)?'bad':t.data===today()?'warn':'mut'}">${t.data===today()&&!t.feito?'Hoje':fdate(t.data)}</span></div>`).join(''):'<div class="empty">Nada por aqui.</div>'}</div>`;
 }
 
 /* calendário */
 function calEvents(){
   const m={},add=(d,e)=>{if(!d)return;d=String(d).slice(0,10);(m[d]=m[d]||[]).push(e)};
-  db.tasks.forEach(t=>add(t.data,{k:'t',txt:t.titulo,a:'editt',id:t.id,done:t.feito,sub:cname(t.contacto)}));
+  db.tasks.forEach(t=>add(t.data,{k:'t',txt:t.titulo,a:'editt',id:t.id,done:t.feito,sub:[cname(t.contacto),ETQ[t.etiqueta]].filter(Boolean).join(' · ')}));
   db.contacts.forEach(c=>add(c.proximo_contacto,{k:'c',txt:'Contactar '+c.nome,a:'editc',id:c.id,sub:c.empresa}));
   db.deals.filter(isOpen).forEach(d=>add(d.fecho,{k:'d',txt:'Fecho: '+d.titulo,a:'editd',id:d.id,sub:kzc(d.valor)}));
   db.inic.forEach(i=>{add(i.inicio,{k:'i',txt:'Início: '+i.titulo,a:'go',id:'cronograma',sub:'Cronograma'});add(i.fim,{k:'i',txt:'Fim: '+i.titulo,a:'go',id:'cronograma',sub:'Cronograma'})});
@@ -1424,15 +1433,15 @@ function editDeal(id,stg){
     inp('Título','f_tit',d.titulo,'text','w')+inp('Valor (Kz)','f_val',d.valor,'number')+sel('Etapa','f_et',opt(STAGES,d.etapa,s=>[s.id,s.nome]))+sel('Contacto','f_con',cOpts(d.contacto))+inp('Fecho previsto','f_fe',d.fecho,'date')+`<label class="w">Notas<textarea id="f_not">${esc(d.notas)}</textarea></label>`+respSel(d.responsavel)+(id?`<div class="w"><button type="button" class="btn" data-a="qfromdeal" data-id="${id}">Criar orçamento deste negócio</button></div>`:''),
     g=>{if(reqName(g,'f_tit','Indica o título')===false)return false;
       const o={titulo:g('f_tit'),valor:Math.max(0,+g('f_val')||0),etapa:g('f_et'),contacto:g('f_con'),fecho:g('f_fe'),notas:g('f_not'),...(isMgr()?{responsavel:g('f_resp')}:{})};
-      let obj;if(id){obj=Object.assign(db.deals.find(x=>x.id===id),o)}else{obj={id:uid(),...o};db.deals.push(obj)}touch('deals',obj)},
+      let obj;if(id){obj=Object.assign(db.deals.find(x=>x.id===id),o)}else{obj={id:uid(),...o};db.deals.push(obj)}setEd(obj);touch('deals',obj)},
     id&&isMgr()&&(()=>{drop('deals',id);db.deals=db.deals.filter(x=>x.id!==id)}));
 }
 function editTask(id){
   const t=db.tasks.find(x=>x.id===id)||{data:today()};
   modal(id?'Editar tarefa':'Nova tarefa',
-    inp('Tarefa','f_tit',t.titulo,'text','w')+sel('Contacto','f_con',cOpts(t.contacto))+inp('Data','f_dt',t.data,'date')+respSel(t.responsavel),
+    inp('Tarefa','f_tit',t.titulo,'text','w')+sel('Contacto','f_con',cOpts(t.contacto))+inp('Data','f_dt',t.data,'date')+sel('Etiqueta','f_etq','<option value="">Sem etiqueta</option>'+opt(Object.keys(ETQ),t.etiqueta||'',k=>[k,ETQ[k]]))+respSel(t.responsavel),
     g=>{if(reqName(g,'f_tit','Indica a tarefa')===false)return false;
-      const o={titulo:g('f_tit'),contacto:g('f_con'),data:g('f_dt')||today(),...(isMgr()?{responsavel:g('f_resp')}:{})};
+      const o={titulo:g('f_tit'),contacto:g('f_con'),data:g('f_dt')||today(),etiqueta:g('f_etq'),...(isMgr()?{responsavel:g('f_resp')}:{})};
       let obj;if(id){obj=Object.assign(db.tasks.find(x=>x.id===id),o)}else{obj={id:uid(),...o,feito:false};db.tasks.push(obj)}touch('tasks',obj)},
     id&&isMgr()&&(()=>{drop('tasks',id);db.tasks=db.tasks.filter(x=>x.id!==id)}));
 }
@@ -1501,6 +1510,7 @@ document.addEventListener('click',e=>{
   if(a==='empback'){ui.emp='';render();return}
   if(a==='topnew'){const f=FABS[ui.view]||FABS.contactos;({newq:editQuote,newc:editContact,newd:editDeal,newt:editTask,newi:editInic})[f[0]]();return}
   if(a==='fi'){ui.fi=id;render();return}
+  if(a==='dr'){ui.dr=+id;render();return}
   if(a==='modelo'){seedPlan();return}
   if(a==='meta'){editEmpresa();return}
   if(a==='stg'){ui.stage=id;render();return}
@@ -1559,8 +1569,9 @@ document.addEventListener('change',e=>{
     const row={empresa_id:db.empresa.id,tipo:t,ativa:ck.checked,dias:+dd.value};
     sb.from('automacoes').upsert(row).then(r=>{if(r.error){toast('Não foi possível guardar a automação',true);loadAll().then(render)}else{db.auto=db.auto.filter(x=>x.tipo!==t).concat([row]);toast(ck.checked?'Automação ativada':'Automação guardada')}});
     return}
+  if(el.dataset.a==='te'){ui.te=el.value;render();return}
   if(el.dataset.a==='tick'){const t=db.tasks.find(x=>x.id===el.dataset.id);t.feito=el.checked;touch('tasks',t);save();render()}
-  if(el.dataset.a==='mv'){const d=db.deals.find(x=>x.id===el.dataset.id);if(d){d.etapa=el.value;d.ganho=d.etapa==='ganho'?(d.ganho||today()):'';touch('deals',d);save();render()}}
+  if(el.dataset.a==='mv'){const d=db.deals.find(x=>x.id===el.dataset.id);if(d){d.etapa=el.value;setEd(d);touch('deals',d);save();render()}}
   if(el.dataset.a==='plano'){sb.rpc('definir_plano',{p_empresa:el.dataset.id,p_plano:el.value}).then(r=>{if(r.error)toast('Não foi possível mudar o plano',true);else toast('Plano atualizado')});return}
   if(el.dataset.a==='role'){const m=db.team.find(x=>x.email===el.dataset.id);if(m){m.papel=el.value;touch('team',m);save().then(()=>toast('Papel atualizado'));render()}}
   if(el.id==='st'){ui.st=el.value;listContacts()}
@@ -1571,7 +1582,7 @@ let dragId=null;
 document.addEventListener('dragstart',e=>{const d=e.target.closest('.deal');if(d){dragId=d.dataset.id;e.dataTransfer.effectAllowed='move';try{e.dataTransfer.setData('text/plain',dragId)}catch(_){}}});
 document.addEventListener('dragover',e=>{const c=e.target.closest('.col');if(c&&dragId){e.preventDefault();if(e.dataTransfer)e.dataTransfer.dropEffect='move';document.querySelectorAll('.col.over').forEach(x=>x!==c&&x.classList.remove('over'));c.classList.add('over')}});
 document.addEventListener('dragleave',e=>{const c=e.target.closest('.col');if(c&&!c.contains(e.relatedTarget))c.classList.remove('over')});
-document.addEventListener('drop',e=>{const c=e.target.closest('.col');if(c&&dragId){e.preventDefault();const d=db.deals.find(x=>x.id===dragId);if(d){d.etapa=c.dataset.stage;d.ganho=d.etapa==='ganho'?(d.ganho||today()):'';touch('deals',d);save()}dragId=null;render()}});
+document.addEventListener('drop',e=>{const c=e.target.closest('.col');if(c&&dragId){e.preventDefault();const d=db.deals.find(x=>x.id===dragId);if(d){d.etapa=c.dataset.stage;setEd(d);touch('deals',d);save()}dragId=null;render()}});
 document.addEventListener('dragend',()=>{dragId=null;document.querySelectorAll('.col.over').forEach(x=>x.classList.remove('over'))});
 
 /* autenticação */
